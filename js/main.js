@@ -94,63 +94,235 @@ var mdata = {
 	}
 };
 
-
-// ===========================================================================
-// IMAGE LOADING
-function loadImage(image) {
-	if (!image) {
-		return Promise.reject();
-	} else if (typeof image === 'string') {
-		/* Create a <img> from a string */
-		const src = image;
-		image = new Image();
-		image.src = src;
-	} else if (image.length !== undefined) {
-		/* Treat as multiple images */
-
-		// Momentarily ignore errors
-		const reflected = [].map.call(image, img => load(img).catch(err => err));
-
-		return Promise.all(reflected).then(results => {
-			const loaded = results.filter(x => x.naturalWidth);
-			if (loaded.length === results.length) {
-				return loaded;
-			}
-			return Promise.reject({
-				loaded,
-				errored: results.filter(x => !x.naturalWidth)
-			});
-		});
-	} else if (image.tagName !== 'IMG') {
-		return Promise.reject();
+class Sprite {
+	constructor(offsetX, offsetY, width, height){
+		this.offsetX = offsetX;
+		this.offsetY = offsetY;
+		this.width = width;
+		this.height = height;
 	}
-
-	const promise = new Promise((resolve, reject) => {
-		if (image.naturalWidth) {
-			// If the browser can determine the naturalWidth the
-			// image is already loaded successfully
-			resolve(image);
-		} else if (image.complete) {
-			// If the image is complete but the naturalWidth is 0px
-			// it is probably broken
-			reject(image);
-		} else {
-			image.addEventListener('load', fullfill);
-			image.addEventListener('error', fullfill);
-		}
-		function fullfill() {
-			if (image.naturalWidth) {
-				resolve(image);
-			} else {
-				reject(image);
-			}
-			image.removeEventListener('load', fullfill);
-			image.removeEventListener('error', fullfill);
-		}
-	});
-	promise.image = image;
-	return promise;
 }
+
+const MSG_OBJECT_ADDED = 1;
+const MSG_OBJECT_REMOVED = 2;
+
+let scene = null;
+
+class Scene {
+
+  constructor() {
+    if(scene) {
+      return scene;
+    }
+    
+	this.scene = this;
+	// messages keys and all subscribers that listens to specific keys
+	this.subscribers = new Map();
+	// component ids and list of all message keys they listen to
+	this.subscribedMessages = new Map();
+	// collection of all game objects, mapped by their tag and then by their ids
+	this.gameObjectTags = new Map();
+	// collection of all game objects, mapped by their id
+	this.gameObjects = new Map();
+	
+	this.objectsToRemove = new Array();
+	this.componentsToRemove = new Array();
+  }
+  
+  // sends message to all subscribers
+  _sendmsg(msg) {
+	if(this.subscribers.has(msg.messageKey)){
+		// get all subscribed components
+		let subscribedComponents = this.subscribers.get(msg.messageKey);
+		for(let component of subscribedComponents){
+			// send message
+			component.onmessage(msg);
+		}
+	}
+  }
+  
+  // subscribes given component for messaging system
+  _subscribeComponent(msgKey, component){
+	  var subs = this.subscribers.get(msgKey);
+	  if(subs === undefined){
+		  subs = new Map();
+		  this.subscribers.set(msgKey, subs);
+	  }
+	  
+	  subs.set(component.id, component);
+	  
+	  // save into the second collection as well
+	  if(!this.subscribedMessages.has(component.id)){
+		  this.subscribedMessages.set(component.id, new Array());
+	  }
+	  
+	  this.subscribedMessages.get(component.id).push(msgKey);
+  }
+  
+  // adds a new game object into scene
+  addGameObject(obj) {
+	  // initialize all components
+	  for(let component of obj.components) {
+		  component.owner = obj;
+		  component.scene = this;
+		  component.oninit();
+	  }
+	  
+	  if(!this.gameObjectTags.hasTag(obj.tag)) {
+		  this.gameObjectTags.set(obj.tag, new Map());
+	  }
+	  
+	  // add game object into the collection
+	  this.gameObjectTags.get(obj.tag).set(obj.id, obj);
+	  this.gameObjects.set(obj.id, obj);
+	  
+	  this._sendmsg(new Msg(MSG_OBJECT_ADDED, null, obj));
+  }
+  
+  removeGameObject(obj){
+	  // will be removed at the end of the update loop
+	  this.objectsToRemove.push(obj);
+  }
+  
+  findAllObjectsByTag(tag){
+		let result = new Array();
+		if(this.gameObjectTags.has(tag)){
+			for(let gameObject of this.gameObjectTags.get(tag)){
+				result.push(gameObject);
+			}
+		}
+		return result;
+  }
+  
+  _removeGameObjectImmediately(obj){
+	  for(let component of obj.components){
+		  this._removeComponentImmediately(component);
+	  }
+	  
+	  this.gameObjectTags.get(obj.tag).delete(obj.id);
+	  this.gameObjects.delete(obj.id);
+	  this._sendmsg(new Msg(MSG_OBJECT_REMOVED, null, obj));
+  }
+  
+  // removes all game objects;
+  _removePendingGameObjects() {
+	for(let obj of objectsToRemove){
+		this._removeGameObjectImmediately(obj);
+	}
+	
+	this.objectsToRemove.clear();
+  }
+  
+  _removeComponent(component){
+	  this.componentsToRemove.push(obj);
+  }
+  
+  _removeComponentImmediately(component){
+	  let allMsgKeys = this.subscribedMessages.get(component.id);
+	  this.subscribedMessages.delete(component.id);
+	  
+	  for(let msgKey of allMsgKeys){
+		  this.subscribers.get(msgKey).delete(component.id);
+	  }
+  }
+  
+  _removePendingComponents(){
+	  for(let component of componentsToRemove){
+		this._removeComponentImmediately(component);
+	  }
+	  this.componentsToRemove.clear();
+	  
+  }
+  
+  update(delta, absolute){
+	  for(gameObject of this.gameObjects){
+		  gameObject.update(delta, absolute);
+	  }
+	  
+	  this._removePendingComponents();
+	  this._removePendingGameObjects();
+  }
+}
+
+scene = new Scene();
+
+class GameObject {
+	
+	constructor(tag) {
+		this.id = GameObject.idCounter++;
+		this.tag = tag;
+		this.components = new Array();
+		this.sprite = null;
+	}
+	
+	update(delta, absolute){
+		for(let component of components){
+			component.update(delta, absolute);
+		}
+	}
+	
+	addComponent(component){
+		this.components.push(component);
+		scene._addGameObject(this);
+	}
+	
+	removeComponent(component){
+		for(var i=0; i<components.length; i++){
+			if(components[i] == component){
+				this.components.splice(i, 1);
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	update(delta, absolute){
+		for(component of this.components){
+			component.update(delta, absolute);
+		}
+	}
+}
+GameObject.idCounter = 0;
+
+class Msg {
+	constructor(messageKey, component, gameObject, data){
+		this.messageKey = messageId;
+		this.component = component;
+		this.gameObject = gameObject;
+		this.data = data;
+	}
+}
+
+class Component {
+	
+	constructor() {
+		this.id = Component.idCounter++;
+		this.owner = null;
+		this.scene = null;
+	}
+	
+	_subscribe(messageKey){
+		this.scene._subscribe(messageKey, this);
+	}
+	
+	_sendmsg(messageKey, data){
+		this.scene._sendmsg(new Msg(messageKey, this, this.owner, data));
+	}
+	
+	oninit(){
+		
+	}
+	
+	onmessage(msg){
+		// will be overridden
+	}
+	
+	update(delta, absolute){
+		// will be overridden
+	}
+}
+Component.idCounter = 0;
+
 
 
 var imagesToLoad = ["speeddriver.png"];
