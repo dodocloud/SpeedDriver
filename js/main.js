@@ -1,284 +1,194 @@
 // ===========================================================================
+// Constants
+
+var mdata = {
+	road : {
+		offsetX : 262,
+		offsetY : 2,
+		width: 169,
+		height: 154
+	},
+	grass_left_1 : {
+		offsetX : 2,
+		offsetY : 134,
+		width: 82,
+		height: 154
+	},
+	grass_left_2 : {
+		offsetX : 90,
+		offsetY : 134,
+		width: 81,
+		height: 154
+	},
+	grass_left_3 : {
+		offsetX : 2,
+		offsetY : 294,
+		width: 81,
+		height: 154
+	},
+	grass_left_4 : {
+		offsetX : 90,
+		offsetY : 294,
+		width: 81,
+		height: 154
+	},
+	grass_right_1 : {
+		offsetX : 178,
+		offsetY : 162,
+		width: 81,
+		height: 154
+	},
+	grass_right_2 : {
+		offsetX : 266,
+		offsetY : 162,
+		width: 81,
+		height: 154
+	},
+	grass_right_3 : {
+		offsetX : 178,
+		offsetY : 322,
+		width: 81,
+		height: 154
+	},
+	grass_right_4 : {
+		offsetX : 266,
+		offsetY : 322,
+		width: 81,
+		height: 154
+	},
+	car : {
+		offsetX : 352,
+		offsetY : 160,
+		width: 41,
+		height: 67
+	},
+	obt_car_1 : {
+		offsetX : 44,
+		offsetY : 452,
+		width: 35,
+		height: 48
+	},
+	obt_car_2 : {
+		offsetX : 440,
+		offsetY : 176,
+		width: 41,
+		height: 61
+	},
+	obt_car_3 : {
+		offsetX : 436,
+		offsetY : 0,
+		width: 45,
+		height: 86
+	},
+	obt_car_4 : {
+		offsetX : 436,
+		offsetY : 88,
+		width: 45,
+		height: 86
+	},
+	obt_obt: {
+		offsetX : 176,
+		offsetY : 132,
+		width: 53,
+		height: 21
+	}
+};
+
+
+// ===========================================================================
 // IMAGE LOADING
+function loadImage(image) {
+	if (!image) {
+		return Promise.reject();
+	} else if (typeof image === 'string') {
+		/* Create a <img> from a string */
+		const src = image;
+		image = new Image();
+		image.src = src;
+	} else if (image.length !== undefined) {
+		/* Treat as multiple images */
+
+		// Momentarily ignore errors
+		const reflected = [].map.call(image, img => load(img).catch(err => err));
+
+		return Promise.all(reflected).then(results => {
+			const loaded = results.filter(x => x.naturalWidth);
+			if (loaded.length === results.length) {
+				return loaded;
+			}
+			return Promise.reject({
+				loaded,
+				errored: results.filter(x => !x.naturalWidth)
+			});
+		});
+	} else if (image.tagName !== 'IMG') {
+		return Promise.reject();
+	}
+
+	const promise = new Promise((resolve, reject) => {
+		if (image.naturalWidth) {
+			// If the browser can determine the naturalWidth the
+			// image is already loaded successfully
+			resolve(image);
+		} else if (image.complete) {
+			// If the image is complete but the naturalWidth is 0px
+			// it is probably broken
+			reject(image);
+		} else {
+			image.addEventListener('load', fullfill);
+			image.addEventListener('error', fullfill);
+		}
+		function fullfill() {
+			if (image.naturalWidth) {
+				resolve(image);
+			} else {
+				reject(image);
+			}
+			image.removeEventListener('load', fullfill);
+			image.removeEventListener('error', fullfill);
+		}
+	});
+	promise.image = image;
+	return promise;
+}
+
+
 var imagesToLoad = ["speeddriver.png"];
-var images = [];
-var loadedImages = 0;
+var loadedImages = [];
 
 function loadImages(){
+	promises = [];
 	for(var i=0; i<imagesToLoad.length; i++){
-		var path = imagesToLoad[i];
-		images[i] = document.createElement("img");
-		images[i].onload = function(){
-			loadedImages++;
-			if(loadedImages >= imagesToLoad.length){
-				
-			}
-		};
-		images[i].src = "images/"+path;
+		let path = imagesToLoad[i];
+		promises.push(loadImage("images/"+path).then((prom) => {
+			loadedImages[path] = prom;
+			return true;
+		}));
 	}
+	return Promise.all(promises);
 }
 
-
-// ===========================================================================
-// Input
-
-const KEY_LEFT_ARROW = 37;
-const KEY_UP_ARROW = 38;
-const KEY_RIGHT_ARROW = 39;
-const KEY_DOWN_ARROW = 40;
-
-const KEY_W = 87;
-const KEY_A = 65;
-const KEY_S = 83;
-const KEY_D = 68;
-
-var mouseX = 0;
-var mouseY = 0;
-
-function setupInput() {
-	canvas.addEventListener('mousemove', updateMousePos);
-
-	document.addEventListener('keydown', keyPressed);
-	document.addEventListener('keyup', keyReleased);
-
-	blueWarrior.setupInput(KEY_UP_ARROW, KEY_RIGHT_ARROW, KEY_DOWN_ARROW, KEY_LEFT_ARROW);
-} 
-
-function updateMousePos(evt) {
-	var rect = canvas.getBoundingClientRect();
-	var root = document.documentElement;
-
-	mouseX = evt.clientX - rect.left - root.scrollLeft;
-	mouseY = evt.clientY - rect.top - root.scrollTop;
-
-	// cheat / hack to test car in any position
-	/*carX = mouseX;
-	carY = mouseY;
-	carSpeedX = 4;
-	carSpeedY = -4;*/
+function getAtlas(){
+	return loadedImages[imagesToLoad[0]];
 }
 
-function keySet(keyEvent, setTo) {
-	if(keyEvent.keyCode == blueWarrior.controlKeyLeft) {
-		blueWarrior.keyHeld_West = setTo;
-	}
-	if(keyEvent.keyCode == blueWarrior.controlKeyRight) {
-		blueWarrior.keyHeld_East = setTo;
-	}
-	if(keyEvent.keyCode == blueWarrior.controlKeyUp) {
-		blueWarrior.keyHeld_North = setTo;
-	}
-	if(keyEvent.keyCode == blueWarrior.controlKeyDown) {
-		blueWarrior.keyHeld_South = setTo;
-	}
+var forestMode = false;
+
+function getLeftGrass(offset){
+	if(offset % 200 == 0) return mdata.grass_left_4;
+	if(offset % 100 == 0) return mdata.grass_left_3;
+	
+	if(offset % 3 == 0) return mdata.grass_left_2;
+	return mdata.grass_left_1;
 }
 
-function keyPressed(evt) {
-	// console.log("Key pressed: "+evt.keyCode);
-	keySet(evt, true);
-
-	evt.preventDefault();
+function getRightGrass(offset){
+	if(offset % 200 == 0) return mdata.grass_right_4;
+	if(offset % 100 == 0) return mdata.grass_right_3;
+	
+	if(offset % 3 == 0) return mdata.grass_right_2;
+	return mdata.grass_right_1;
 }
-
-function keyReleased(evt) {
-	// console.log("Key pressed: "+evt.keyCode);
-	keySet(evt, false);
-}
-// ===========================================================================
-// Warrior
-const PLAYER_MOVE_SPEED = 3.0;
-
-function warriorClass() {
-	this.x = 75;
-	this.y = 75;
-	this.myWarriorPic; // which picture to use
-	this.name = "Untitled Warrior";
-	this.keysHeld = 0;
-
-	this.keyHeld_North = false;
-	this.keyHeld_South = false;
-	this.keyHeld_West = false;
-	this.keyHeld_East = false;
-
-	this.controlKeyUp;
-	this.controlKeyRight;
-	this.controlKeyDown;
-	this.controlKeyLeft;
-
-	this.setupInput = function(upKey, rightKey, downKey, leftKey) {
-		this.controlKeyUp = upKey;
-		this.controlKeyRight = rightKey;
-		this.controlKeyDown = downKey;
-		this.controlKeyLeft = leftKey;
-	}
-
-	this.reset = function(whichImage, warriorName) {
-		this.name = warriorName;
-		this.myWarriorPic = whichImage;
-		this.keysHeld = 0;
-		this.updateKeyReadout();
-
-		for(var eachRow=0;eachRow<WORLD_ROWS;eachRow++) {
-			for(var eachCol=0;eachCol<WORLD_COLS;eachCol++) {
-				var arrayIndex = rowColToArrayIndex(eachCol, eachRow); 
-				if(worldGrid[arrayIndex] == TILE_PLAYERSTART) {
-					worldGrid[arrayIndex] = TILE_GROUND;
-					this.x = eachCol * WORLD_W + WORLD_W/2;
-					this.y = eachRow * WORLD_H + WORLD_H/2;
-					return;
-				} // end of player start if
-			} // end of col for
-		} // end of row for
-		console.log("NO PLAYER START FOUND!");
-	} // end of warriorReset func
-
-	this.updateKeyReadout = function() {
-		//document.getElementById("debugText").innerHTML = "Keys: " + this.keysHeld;
-	}
-
-	this.move = function() {
-		var nextX = this.x;
-		var nextY = this.y;
-
-		if(this.keyHeld_North) {
-			nextY -= PLAYER_MOVE_SPEED;
-		}
-		if(this.keyHeld_East) {
-			nextX += PLAYER_MOVE_SPEED;
-		}
-		if(this.keyHeld_South) {
-			nextY += PLAYER_MOVE_SPEED;
-		}
-		if(this.keyHeld_West) {
-			nextX -= PLAYER_MOVE_SPEED;
-		}
-
-		var walkIntoTileIndex = getTileIndexAtPixelCoord(nextX, nextY);
-		var walkIntoTileType = TILE_WALL;
-
-		if(walkIntoTileIndex != undefined) {
-			walkIntoTileType = worldGrid[walkIntoTileIndex];
-		}
-
-		switch(walkIntoTileType) {
-			case TILE_GROUND:
-				this.x = nextX;
-				this.y = nextY;
-				break;
-			case TILE_GOAL:
-				console.log(this.name + " WINS!");
-				loadLevel(levelOne);
-				break;
-			case TILE_DOOR:
-				if(this.keysHeld > 0) {
-					this.keysHeld--; // one less key
-					this.updateKeyReadout();
-					worldGrid[walkIntoTileIndex] = TILE_GROUND;
-				}
-				break;
-			case TILE_KEY:
-				this.keysHeld++; // one more key
-				this.updateKeyReadout();
-				worldGrid[walkIntoTileIndex] = TILE_GROUND;
-				break;
-			case TILE_WALL:
-			default:
-				break;
-		}
-	}
-
-	this.draw = function() {
-		drawBitmapCenteredWithRotation(this.myWarriorPic, this.x,this.y, 0);
-	}
-}
-
-
-// ===========================================================================
-// World
-const WORLD_W = 50;
-const WORLD_H = 50;
-const WORLD_GAP = 2;
-const WORLD_COLS = 16;
-const WORLD_ROWS = 12;
-var levelOne =  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-				 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 1, 1, 1, 1,
-				 1, 0, 4, 0, 4, 0, 1, 0, 2, 0, 1, 0, 1, 4, 4, 1,
-				 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 5, 1, 1,
-				 1, 1, 1, 5, 1, 1, 1, 0, 4, 0, 1, 0, 0, 0, 1, 1,
-				 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 0, 1, 1,
-				 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1,
-				 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 4, 0, 1, 1,
-				 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1,
-				 1, 0, 5, 0, 5, 0, 5, 0, 3, 0, 1, 1, 1, 1, 1, 1,
-				 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1,
-				 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-var worldGrid = [];
-
-const TILE_GROUND = 0;
-const TILE_WALL = 1;
-const TILE_PLAYERSTART = 2;
-const TILE_GOAL = 3;
-const TILE_KEY = 4;
-const TILE_DOOR = 5;
-
-function returnTileTypeAtColRow(col, row) {
-	if(col >= 0 && col < WORLD_COLS &&
-		row >= 0 && row < WORLD_ROWS) {
-		 var worldIndexUnderCoord = rowColToArrayIndex(col, row);
-		 return worldGrid[worldIndexUnderCoord];
-	} else {
-		return WORLD_WALL;
-	}
-}
-
-function getTileIndexAtPixelCoord(atX, atY) {
-	var warriorWorldCol = Math.floor(atX / WORLD_W);
-	var warriorWorldRow = Math.floor(atY / WORLD_H);
-	var worldIndexUnderWarrior = rowColToArrayIndex(warriorWorldCol, warriorWorldRow);
-
-	if(warriorWorldCol >= 0 && warriorWorldCol < WORLD_COLS &&
-		warriorWorldRow >= 0 && warriorWorldRow < WORLD_ROWS) {
-		return worldIndexUnderWarrior;
-	} // end of valid col and row
-
-	return undefined;
-} // end of warriorWorldHandling func
-
-function rowColToArrayIndex(col, row) {
-	return col + WORLD_COLS * row;
-}
-
-function tileTypeHasTransparency(checkTileType) {
-	return (checkTileType == TILE_GOAL ||
-			checkTileType == TILE_KEY ||
-			checkTileType == TILE_DOOR);
-}
-
-function drawWorld() {
-
-	var arrayIndex = 0;
-	var drawTileX = 0;
-	var drawTileY = 0;
-	for(var eachRow=0;eachRow<WORLD_ROWS;eachRow++) {
-		for(var eachCol=0;eachCol<WORLD_COLS;eachCol++) {
-
-			var arrayIndex = rowColToArrayIndex(eachCol, eachRow); 
-			var tileKindHere = worldGrid[arrayIndex];
-			var useImg = worldPics[tileKindHere];
-
-			if( tileTypeHasTransparency(tileKindHere) ) {
-				canvasContext.drawImage(worldPics[TILE_GROUND],drawTileX,drawTileY);
-			}
-			canvasContext.drawImage(useImg,drawTileX,drawTileY);
-			drawTileX += WORLD_W;
-			arrayIndex++;
-		} // end of for each col
-		drawTileY += WORLD_H;
-		drawTileX = 0;
-	} // end of for each row
-
-} // end of drawWorld func
-
 
 // ===========================================================================
 // GraphicsCommon
@@ -290,66 +200,158 @@ function drawBitmapCenteredWithRotation(useBitmap, atX,atY, withAng) {
 	canvasContext.restore();
 }
 
-function colorRect(topLeftX,topLeftY, boxWidth,boxHeight, fillColor) {
-	canvasContext.fillStyle = fillColor;
-	canvasContext.fillRect(topLeftX,topLeftY, boxWidth,boxHeight);
-}
-
-function colorCircle(centerX,centerY, radius, fillColor) {
-	canvasContext.fillStyle = fillColor;
-	canvasContext.beginPath();
-	canvasContext.arc(centerX,centerY, 10, 0,Math.PI*2, true);
-	canvasContext.fill();
-}
-
-function colorText(showWords, textX,textY, fillColor) {
-	canvasContext.fillStyle = fillColor;
-	canvasContext.fillText(showWords, textX, textY);
-}
-
 
 
 // ===========================================================================
 // Main
 
-var canvas, canvasContext;
-
-var blueWarrior = new warriorClass();
+var canvas;
+var cw, ch, cx, fps = 30, interval = 1000/fps,
+lastTime = (new Date()).getTime(), currentTime = 0, delta = 0;
+var gameTime = 0;
 
 window.onload = function() {
 	canvas = document.getElementById('gameCanvas');
-	canvasContext = canvas.getContext('2d');
+	cw = canvas.width,
+    ch = canvas.height,
+	
+	cx = canvas.getContext('2d');
+	
+	currentTime = (new Date()).getTime();
+	gameTime = (new Date()).getTime() - currentTime;
 
-	colorRect(0,0, canvas.width,canvas.height, 'black');
-	colorText("LOADING IMAGES", canvas.width/2, canvas.height/2, 'white');
-
-	loadImages();
+	loadImages().then(gameLoop);
 }
 
-function imageLoadingDoneSoStartGame() {
-	var framesPerSecond = 30;
-	setInterval(updateAll, 1000/framesPerSecond);
-
-	setupInput();
-
-	loadLevel(levelOne);
+function drawSprite(sprite, posX, posY, width, height){
+	cx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY, 
+	sprite.width, sprite.height, posX, posY, sprite.width, sprite.height);
+	
 }
 
-function loadLevel(whichLevel) {
-	worldGrid = whichLevel.slice();
-	blueWarrior.reset(warriorPic, "Blue Storm");
+var currentPosition = 0;
+var currentSpeed = 10;
+
+function drawRoad() {
+	var posX = mdata.grass_left_1.width;
+	var spriteHeight = mdata.road.height;
+	var canvasHeight = ch;
+	var mults = Math.round(canvasHeight / spriteHeight) + 1;
+	var currentBlock = Math.floor(currentPosition / spriteHeight) + mults;
+	
+	var position = Math.min(spriteHeight,spriteHeight - currentPosition % spriteHeight);
+	var posY = 0;
+	for(var i=0; i<mults; i++){
+		var sprite = mdata.road;
+		if(sprite.height-position <= 0){
+			position = 0;
+			continue;
+		}
+		// draw road
+		cx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY+position,
+		sprite.width, sprite.height-position, posX, posY, sprite.width, sprite.height-position);
+		
+		// draw left grass
+		var leftGrass = getLeftGrass(currentBlock-i);
+		cx.drawImage(getAtlas(), leftGrass.offsetX, leftGrass.offsetY+position,
+		leftGrass.width, leftGrass.height-position, 0, posY, leftGrass.width, leftGrass.height-position);
+		
+		// draw right grass
+		var rightGrass = getRightGrass(currentBlock-i);
+		cx.drawImage(getAtlas(), rightGrass.offsetX, rightGrass.offsetY+position,
+		rightGrass.width, rightGrass.height-position, posX+mdata.road.width, posY, rightGrass.width, rightGrass.height-position);
+		
+		posY+=(sprite.height - position);
+		position = 0;
+	}
 }
 
-function updateAll() {
-	moveAll();
-	drawAll();
+function drawCar() {
+	var posX = mdata.grass_left_1.width + mdata.road.width / 2 - mdata.car.width/2;
+	var posY = ch - 1.5 * mdata.car.height;
+	cx.drawImage(getAtlas(), mdata.car.offsetX, mdata.car.offsetY,
+		mdata.car.width, mdata.car.height, posX, posY, mdata.car.width, mdata.car.height);
 }
 
-function moveAll() {
-	blueWarrior.move();
+class Obstacle {
+    constructor(sprite, lane, speed, position) {
+        this.sprite = sprite;
+        this.lane = lane;
+		this.speed = speed;
+		this.position = position;
+    }
 }
 
-function drawAll() {
-	drawWorld();
-	blueWarrior.draw();
-} 
+var obstacles = [];
+
+
+function drawObstacles(){
+	var lane = mdata.grass_left_1.width;
+	
+	for(var i=0; i<obstacles.length; i++){
+		var obst = obstacles[i];
+		var lanePos = lane + obst.lane * mdata.road.width / 3;
+		var sprite = obst.sprite;
+		
+		cx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY,
+		sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
+		
+		obst.position += obst.speed;
+	}
+}
+
+function createObstacle(){
+	var globalSpeed = currentSpeed;
+	
+	if(Math.random() <= 0.1){
+		var rnd = Math.floor(Math.random() * 5);
+		var sprite = null;
+		var lane = Math.floor(Math.random() * 3);
+		var speed = 0;
+		
+		if(rnd == 0){
+			sprite = mdata.obt_car_1;
+			speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+		}
+		if(rnd == 1){
+			sprite = mdata.obt_car_2;
+			speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+		}
+		if(rnd == 2){
+			sprite = mdata.obt_car_3;
+			speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+		}
+		if(rnd == 3){
+			sprite = mdata.obt_car_4;
+			speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+		}
+		if(rnd == 4){
+			sprite = mdata.obt_obt;
+		}
+		position = currentPosition + 200;
+		obstacles.push(new Obstacle(sprite, lane, speed, position));
+	}
+}
+
+function gameLoop() {
+    window.requestAnimationFrame(gameLoop);
+
+    currentTime = (new Date()).getTime();
+    delta = (currentTime-lastTime);
+	gameTime += delta;
+	
+    if(delta > interval) {
+        cx.clearRect(0,0,cw,ch);
+		update(delta, gameTime);
+        lastTime = currentTime - (delta % interval);
+    }
+}
+
+function update(delta, absolute){
+	//drawSprite(mdata.road, 0, 0);
+	currentPosition+=currentSpeed;
+	drawRoad();
+	drawCar();
+	drawObstacles();
+	createObstacle();
+}
