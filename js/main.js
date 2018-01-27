@@ -211,9 +211,17 @@ lastTime = (new Date()).getTime(), currentTime = 0, delta = 0;
 var gameTime = 0;
 
 window.onload = function() {
+	
 	canvas = document.getElementById('gameCanvas');
 	cw = canvas.width,
     ch = canvas.height,
+	
+	canvas.addEventListener("touchstart", handleStart, false);
+	canvas.addEventListener("touchend", handleEnd, false);
+	canvas.addEventListener("mousedown", handleStart, false);
+	canvas.addEventListener("mouseup", handleEnd, false);
+	
+	currentCarLocationX =  mdata.grass_left_1.width + mdata.road.width / 3 * 1;
 	
 	cx = canvas.getContext('2d');
 	
@@ -221,6 +229,48 @@ window.onload = function() {
 	gameTime = (new Date()).getTime() - currentTime;
 
 	loadImages().then(gameLoop);
+}
+
+var lastTouch = null;
+
+function handleStart(evt) {
+	evt.preventDefault();
+    if(typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1){
+		// only single-touch
+		lastTouch = evt.changedTouches[0];
+	} else{
+		lastTouch = evt;
+	}
+}
+
+function handleEnd(evt) {
+	evt.preventDefault();
+	var posX, posY;
+	
+	if(typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1){
+		posX = evt.changedTouches[0].pageX;
+		posY = evt.changedTouches[1].pageY;
+	  
+	} else {
+	  // mouse
+		posX = evt.pageX;
+		posY = evt.pageY;
+	}
+  
+  	if(Math.abs(lastTouch.pageX - posX) < 10 && 
+	 Math.abs(lastTouch.pageY - posY) <10){
+		handleTouch(posX, posY);
+	}
+}
+
+function handleTouch(posX, posY){
+	if(posX < currentCarLocationX && currentCarLane > 0){
+		currentCarState = CAR_STATE_STEERING_LEFT;
+	}
+	
+	if(posX > (currentCarLocationX + mdata.car.width) && currentCarLane < 2){
+		currentCarState = CAR_STATE_STEERING_RIGHT;
+	}
 }
 
 function drawSprite(sprite, posX, posY, width, height){
@@ -267,7 +317,7 @@ function drawRoad() {
 }
 
 function drawCar() {
-	var posX = mdata.grass_left_1.width + mdata.road.width / 2 - mdata.car.width/2;
+	var posX = currentCarLocationX;
 	var posY = ch - 1.5 * mdata.car.height;
 	cx.drawImage(getAtlas(), mdata.car.offsetX, mdata.car.offsetY,
 		mdata.car.width, mdata.car.height, posX, posY, mdata.car.width, mdata.car.height);
@@ -297,6 +347,11 @@ function drawObstacles(){
 		sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
 		
 		obst.position += obst.speed;
+		
+		if((currentPosition - obst.position) > 1000){
+			// delete obstacle
+			obstacles.splice(i, 1);
+		}
 	}
 }
 
@@ -333,6 +388,58 @@ function createObstacle(){
 	}
 }
 
+var CAR_STATE_NONE = 0;
+var CAR_STATE_STEERING_LEFT = 1;
+var CAR_STATE_STEERING_RIGHT = 2;
+var currentCarState = CAR_STATE_NONE;
+var currentCarLane = 1;
+var currentCarLocationX = 0;
+
+// t = current time
+// b = start value
+// c = change in value
+// d = duration
+var easeInOutSine = function (t, b, c, d) {
+	return -c/2 * (Math.cos(Math.PI*t/d) - 1) + b;
+};
+
+var steeringTime = 0;
+function steerCar(absolute){
+	if(currentCarState != CAR_STATE_NONE && steeringTime == 0){
+		console.log(absolute);
+		steeringTime = absolute;
+	}
+	
+	if(currentCarState == CAR_STATE_STEERING_LEFT){
+		var carLocationX =  mdata.grass_left_1.width + mdata.road.width / 3 * currentCarLane;
+		var desiredLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * (currentCarLane - 1);
+		
+		var progress = Math.min(1, (absolute - steeringTime) / (500));
+		currentCarLocationX = carLocationX + (desiredLocationX - carLocationX) * progress;
+
+		if(progress >= 1){
+			currentCarState = CAR_STATE_NONE;
+			currentCarLane--;
+			steeringTime = 0;
+		}
+	}
+	
+	if(currentCarState == CAR_STATE_STEERING_RIGHT){
+		var carLocationX =  mdata.grass_left_1.width + mdata.road.width / 3 * currentCarLane;
+		var desiredLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * (currentCarLane + 1);
+		
+		var progress = Math.min(1, (absolute - steeringTime) / (500));
+		
+		currentCarLocationX = carLocationX + (desiredLocationX - carLocationX) * progress;
+		
+		if(progress >= 1){
+			currentCarState = CAR_STATE_NONE;
+			currentCarLane++;
+			steeringTime = 0;
+		}
+	}
+}
+
 function gameLoop() {
     window.requestAnimationFrame(gameLoop);
 
@@ -354,4 +461,5 @@ function update(delta, absolute){
 	drawCar();
 	drawObstacles();
 	createObstacle();
+	steerCar(absolute);
 }
