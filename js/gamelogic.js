@@ -197,33 +197,11 @@ class ObstacleManager extends Component {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 	}
 
-	draw(ctx) {
-		/*var bgrWidth = this.spriteMgr.getBgrWidth();
-		let currentPosition = this.gameModel.currentPosition;
-		
-		for (var i = 0; i < this.obstacles.length; i++) {
-			var obst = this.obstacles[i];
-			var sprite = obst.sprite;
-			var lanePos = bgrWidth + this.spriteMgr.getCenterOfRoad(obst.lane) - sprite.width/2;
-			
-
-			ctx.drawImage(this.spriteMgr.atlas, sprite.offsetX, sprite.offsetY,
-				sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
-
-			obst.position += obst.speed;
-
-			if ((currentPosition - obst.position) > 1000) {
-				// delete obstacle
-				this.obstacles.splice(i, 1);
-			}
-		}*/
-	}
-
 	update(delta, absolute) {
 		var globalSpeed = this.gameModel.currentSpeed;
 
 		if (Math.random() <= 0.1) {
-			var rnd = Math.floor(Math.random() * 5);
+			var rnd = Math.floor(Math.random() * 6);
 			var sprite = null;
 			var lane = Math.floor(Math.random() * 3);
 			var speed = 0;
@@ -247,6 +225,9 @@ class ObstacleManager extends Component {
 			if (rnd == 4) {
 				sprite =this.spriteMgr.getObstacle("static");
 			}
+			if (rnd == 5) {
+				sprite =this.spriteMgr.getObstacle("static", 1);
+			}
 			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width/2;
 			let posY = this.gameModel.currentPosition + 200;
 		
@@ -254,6 +235,7 @@ class ObstacleManager extends Component {
 			newObj.sprite = sprite;
 			newObj.posX = posX;
 			newObj.posY = posY;
+			newObj.zIndex = 1;
 			newObj.addAttribute(ATTR_LANE, lane);
 			newObj.addAttribute(ATTR_SPEED, speed);
 			newObj.addComponent(new ObstacleComponent());

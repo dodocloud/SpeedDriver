@@ -71,7 +71,8 @@ function initGame() {
 	car.posY = canvas.height - 1.5 * spriteMgr.getCar().height;
 	car.addComponent(new Renderer());
 	car.addComponent(new CarController());
-
+	car.zIndex = 5;
+	
 	car.addAttribute(ATTR_CAR_STATE, CAR_STATE_NONE);
 	car.addAttribute(ATTR_LANE, 1);
 
