@@ -68,7 +68,6 @@ function initGame() {
 
 	let car = new GameObject("car");
 	car.sprite = spriteMgr.getCar();
-	car.addAttribute(ATTR_SPEED, 30);
 	
 	// place the car into the middle lane
 	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfRoad(1) - car.sprite.width/2;
@@ -82,6 +81,7 @@ function initGame() {
 	scene.addGameObject(car);
 
 	root.addComponent(new CameraComponent());
+	root.addComponent(new ScoreDisplayComponent());
 	
 	let obstacleMgr = new GameObject("obstacle_manager");
 	obstacleMgr.addComponent(new ObstacleManager());

@@ -10,6 +10,8 @@ const ATTR_OBSTACLE_MAP = 105;
 
 const MSG_TOUCH = 103;
 const MSG_ANIM_ENDED = 104;
+const MSG_CAR_COLLIDED = 105;
+const MSG_GAME_OVER = 106;
 
 let scene = null;
 
@@ -158,9 +160,11 @@ class GameModel {
 		this.cameraPosition = 0;
 		this.cameraSpeed = 0;
 		this.lives = 3;
-		this.round = 1;
+		this.score = 0;
+		this.immuneMode = false;
 	}
 }
+
 
 class Obstacle {
 	constructor(sprite, lane, speed, position) {
@@ -191,7 +195,24 @@ class LivesComponent extends Component {
 	}
 }
 
-class TextDisplayComponent extends Component {
+class ScoreDisplayComponent extends Component {
+	oninit(){
+		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+	
+	draw(ctx) {
+		let score = Math.floor(this.model.score);
+		score = (1e15+score+"").slice(-4); // hack for leading zeros
+		let posX = 20;
+		let posY = 100;
+		
+		ctx.fillStyle = "rgba(255, 255, 255)";
+		ctx.textAlign = 'left';
+		ctx.fillText(score + " m", posX, posY);
+	}
+}
+
+class AnimTextDisplayComponent extends Component {
 	constructor(text, duration){
 		super();
 		this.text = text;
@@ -225,6 +246,7 @@ class TextDisplayComponent extends Component {
 
 		if ((absolute - this.startTime) > this.duration) {
 			this.owner.removeComponent(this);
+			this.sendmsg(MSG_ANIM_ENDED);
 		}
 	}
 	
@@ -263,9 +285,9 @@ class RoadComponent extends Component {
 	}
 
 	getLeftGrass(offset) {
-		if (offset % 200 == 0)
+		if (noise.simplex2(1,offset) >= 0)
 			return this.spriteMgr.getLeftBgr(3);
-		if (offset % 100 == 0)
+		if (offset % 20 == 0)
 			return this.spriteMgr.getLeftBgr(2);
 
 		if (offset % 3 == 0)
@@ -274,9 +296,9 @@ class RoadComponent extends Component {
 	}
 
 	getRightGrass(offset) {
-		if (offset % 200 == 0)
+		if (noise.simplex2(200,offset) >= 0)
 			return this.spriteMgr.getRightBgr(3);
-		if (offset % 100 == 0)
+		if (offset % 20 == 0)
 			return this.spriteMgr.getRightBgr(2);
 
 		if (offset % 3 == 0)
@@ -385,8 +407,7 @@ class ObstacleManager extends Component {
 	}
 
 	update(delta, absolute) {
-
-		if (Math.random() <= 0.1) {
+		if (!this.gameModel.immuneMode && noise.simplex2(1,this.gameModel.cameraPosition) > 0.5) {
 			var rnd = Math.floor(Math.random() * 6);
 			var sprite = null;
 			var lane = Math.floor(Math.random() * 3);
@@ -497,20 +518,20 @@ class CarController extends Component {
 	oninit() {
 		this.steeringTime = 0;
 		this.steeringSourcePosX = 0;
-		this.steeringDuration = 1000;
+		this.steeringDuration = 500;
 		this.steeringState = STEERING_NONE;
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.obstacleMap = this.scene.getGlobalAttribute(ATTR_OBSTACLE_MAP);
-		this.immuneMode = false;
 		this.desiredVelocity = 0;
 		this.subscribe(MSG_ANIM_ENDED);
-		this.currentMaxSpeed = 30;
+		this.currentMaxSpeed = 10;
+		this.owner.addAttribute(ATTR_SPEED, this.currentMaxSpeed);
 	}
 
 	onmessage(msg) {
 		if (msg.action == MSG_ANIM_ENDED && msg.gameObject.id == this.owner.id) {
-			this.immuneMode = false;
+			this.gameModel.immuneMode = false;
 			this.accelerate(this.currentMaxSpeed);
 		}
 	}
@@ -592,17 +613,16 @@ class CarController extends Component {
 			}
 		}
 
-		if (!this.immuneMode) {
+		if (!this.gameModel.immuneMode) {
 			// check for collisions
 			let collided = this.obstacleMap.findCollidedObstacle(this.owner);
 
 			if (collided != null) {
 				// handle collision
 				this.owner.addComponent(new FlickerAnimation(4000));
-				this.immuneMode = true;
+				this.gameModel.immuneMode = true;
 				this.decelerate(this.currentMaxSpeed/2);
-				
-				this.owner.addComponent(new TextDisplayComponent("Round ", 5000));
+				this.sendmsg(MSG_CAR_COLLIDED);
 			}
 		}
 	}
@@ -635,11 +655,30 @@ class CarTouchController extends CarController {
 class GameManager extends Component {
 	oninit(){
 		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
-		this.owner.addComponent(new TextDisplayComponent("Round "+this.model.round, 5000));
+		this.owner.addComponent(new AnimTextDisplayComponent("Prepare", 5000));
+		this.subscribe(MSG_CAR_COLLIDED);
+		this.subscribe(MSG_ANIM_ENDED);
 	}
 	
 	onmessage(msg){
+		if(msg.action == MSG_CAR_COLLIDED) {
+			this.model.lives--;
+			if(this.model.lives == 0) {
+				
+				let gameOverComp = new AnimTextDisplayComponent("Game Over", 5000);
+				this.owner.addComponent(gameOverComp);
+				this.sendmsg(MSG_GAME_OVER);
+				this.postponedAnimationId = gameOverComp.id;
+			}
+		}
 		
+		if(this.postponedAnimationId !== undefined 
+		&& msg.action == MSG_ANIM_ENDED 
+		&& msg.component.id == this.postponedAnimationId){
+			// restore the whole scene
+			this.scene.clearScene();
+			initGame();
+		}
 	}
 	
 	update(delta, absolute){
@@ -659,5 +698,7 @@ class CameraComponent extends Component {
 		// however, we can animate the camera independently. That's why there are two attributes 
 		this.model.cameraSpeed = this.car.getAttribute(ATTR_SPEED);
 		this.model.cameraPosition += Math.floor(this.model.cameraSpeed * delta * 0.01);
+		
+		this.model.score += this.car.getAttribute(ATTR_SPEED)* delta * 0.001;
 	}
 }
