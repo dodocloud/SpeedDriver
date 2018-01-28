@@ -62,6 +62,12 @@ var mdata = {
 		width: 41,
 		height: 67
 	},
+	car_destroyed: {
+		offsetX: 396,
+		offsetY: 173,
+		width: 41,
+		height: 67
+	},
 	obt_car_1: {
 		offsetX: 44,
 		offsetY: 452,
@@ -86,11 +92,23 @@ var mdata = {
 		width: 45,
 		height: 86
 	},
+	obt_car_5: {
+		offsetX: 352,
+		offsetY: 228,
+		width: 32,
+		height: 47
+	},
 	obt_obt: {
 		offsetX: 176,
 		offsetY: 132,
 		width: 53,
 		height: 21
+	},
+	obt_obt_2: {
+		offsetX: 352,
+		offsetY: 274,
+		width: 26,
+		height: 25
 	}
 };
 
@@ -325,6 +343,7 @@ class CarController extends Component {
 }
 
 class GameManager extends Component {
+	
 	update(delta, absolute){
 		let model = this.owner.getAttribute(ATTR_GAME_MODEL);
 		model.currentPosition += model.currentSpeed;

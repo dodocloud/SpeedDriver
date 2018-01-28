@@ -1,6 +1,10 @@
-var canvas, fps = 30, interval = 1000 / fps,
-lastTime = (new Date()).getTime(), currentTime = 0, delta = 0;
+var fps = 30; 
+var interval = 1000 / fps;
+var lastTime = (new Date()).getTime(); 
 var gameTime = 0;
+
+
+var canvas; 
 var canvasCtx;
 
 window.onload = function () {
@@ -11,7 +15,7 @@ window.onload = function () {
 
 	canvasCtx = canvas.getContext('2d');
 
-	currentTime = (new Date()).getTime();
+	var currentTime = (new Date()).getTime();
 	gameTime = (new Date()).getTime() - currentTime;
 
 	loadImages().then(initGame).then(gameLoop);
@@ -52,8 +56,8 @@ function initGame() {
 function gameLoop() {
 	window.requestAnimationFrame(gameLoop);
 
-	currentTime = (new Date()).getTime();
-	delta = (currentTime - lastTime);
+	var currentTime = (new Date()).getTime();
+	var delta = (currentTime - lastTime);
 	gameTime += delta;
 
 	if (delta > interval) {
