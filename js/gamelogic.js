@@ -5,7 +5,9 @@ const CAR_STATE_STEERING_RIGHT = 2;
 const ATTR_GAME_MODEL = 100;
 const ATTR_CAR_STATE = 101;
 const ATTR_SPRITE_MGR = 102;
-const ATTR_LANE = 102;
+const ATTR_LANE = 103;
+const ATTR_SPEED = 104;
+
 const MSG_TOUCH = 103;
 
 class Renderer extends Component {
@@ -162,16 +164,41 @@ class Obstacle {
 	}
 }
 
+class ObstacleComponent extends Component {
+	oninit(){
+		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+	
+	draw(ctx){
+		var sprite = this.owner.sprite;
+		let currentPosition = this.gameModel.currentPosition;
+
+		ctx.drawImage(this.spriteMgr.atlas, sprite.offsetX, sprite.offsetY,
+			sprite.width, sprite.height, this.owner.posX, currentPosition - this.owner.posY, sprite.width, sprite.height);
+
+	}
+	
+	update(delta, absolute) {
+		this.owner.posY += this.owner.getAttribute(ATTR_SPEED);
+		let currentPosition = this.gameModel.currentPosition;
+		
+		if ((currentPosition - this.owner.posY) > 1000) {
+			// delete obstacle
+			this.scene.removeGameObject(this.owner);
+		}
+	}
+}
+
 class ObstacleManager extends Component {
 
 	oninit() {
-		this.obstacles = [];
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 	}
 
 	draw(ctx) {
-		var bgrWidth = this.spriteMgr.getBgrWidth();
+		/*var bgrWidth = this.spriteMgr.getBgrWidth();
 		let currentPosition = this.gameModel.currentPosition;
 		
 		for (var i = 0; i < this.obstacles.length; i++) {
@@ -189,7 +216,7 @@ class ObstacleManager extends Component {
 				// delete obstacle
 				this.obstacles.splice(i, 1);
 			}
-		}
+		}*/
 	}
 
 	update(delta, absolute) {
@@ -220,8 +247,17 @@ class ObstacleManager extends Component {
 			if (rnd == 4) {
 				sprite =this.spriteMgr.getObstacle("static");
 			}
-			let position = this.gameModel.currentPosition + 200;
-			this.obstacles.push(new Obstacle(sprite, lane, speed, position));
+			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width/2;
+			let posY = this.gameModel.currentPosition + 200;
+		
+			let newObj = new GameObject("obstacle");
+			newObj.sprite = sprite;
+			newObj.posX = posX;
+			newObj.posY = posY;
+			newObj.addAttribute(ATTR_LANE, lane);
+			newObj.addAttribute(ATTR_SPEED, speed);
+			newObj.addComponent(new ObstacleComponent());
+			this.scene.addGameObject(newObj);
 		}
 	}
 
