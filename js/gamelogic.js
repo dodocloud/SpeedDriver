@@ -1,42 +1,26 @@
 
-const CAR_STATE_NONE = 0;
-const CAR_STATE_STEERING_LEFT = 1;
-const CAR_STATE_STEERING_RIGHT = 2;
+const STEERING_NONE = 0;
+const STEERING_LEFT = 1;
+const STEERING_RIGHT = 2;
 const ATTR_GAME_MODEL = 100;
-const ATTR_CAR_STATE = 101;
 const ATTR_SPRITE_MGR = 102;
 const ATTR_LANE = 103;
 const ATTR_SPEED = 104;
 
 const MSG_TOUCH = 103;
 
-class Renderer extends Component {
-	
-	oninit(){
-		let spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
-		this.atlas = spriteMgr.atlas;
-	}
-	
-	draw(ctx) {
-		if (this.owner.sprite != null) {
-			
-			ctx.drawImage(this.atlas, this.owner.sprite.offsetX, this.owner.sprite.offsetY,
-				this.owner.sprite.width, this.owner.sprite.height, this.owner.posX, this.owner.posY, this.owner.sprite.width, this.owner.sprite.height);
-		}
-	}
-}
-
+let scene = null;
 
 class SpriteManager {
-	constructor(sprites, atlas){
+	constructor(sprites, atlas) {
 		this.sprites = sprites;
 		this.atlas = atlas;
 	}
-	
-	getBgrWidth(){
+
+	getBgrWidth() {
 		return this.sprites.bgr_left[0].width;
 	}
-	
+
 	getLeftGrass(offset) {
 		if (offset % 200 == 0)
 			return this.sprites.bgr_left[3];
@@ -58,45 +42,45 @@ class SpriteManager {
 			return this.sprites.bgr_right[1];
 		return this.sprites.bgr_right[0];
 	}
-	
-	getRoad(){
+
+	getRoad() {
 		return this.sprites.road;
 	}
-	
-	getCar(){
+
+	getCar() {
 		return this.sprites.car;
 	}
-	
+
 	getObstacle(type, index = 0) {
 		let counter = 0;
-		
-		for(let obstacle of this.sprites.obstacles){
-			if(obstacle.type == type && counter++ == index){
+
+		for (let obstacle of this.sprites.obstacles) {
+			if (obstacle.type == type && counter++ == index) {
 				return obstacle;
 			}
 		}
-		
+
 		return null;
 	}
-	
-	getRoadLaneWidth(){
+
+	getRoadLaneWidth() {
 		return (this.sprites.road.width - (2 * 10)) / 3;
 	}
-	
-	getCenterOfRoad(lineIndex){
-		if(lineIndex == 0) {
+
+	getCenterOfRoad(lineIndex) {
+		if (lineIndex == 0) {
 			return this.getCenterOfRoad(1) - this.getRoadLaneWidth();
 		}
-		
-		if(lineIndex == 1) {
+
+		if (lineIndex == 1) {
 			return this.sprites.road.width / 2;
 		}
-		
-		if(lineIndex == 2) {
+
+		if (lineIndex == 2) {
 			return this.getCenterOfRoad(1) + this.getRoadLaneWidth();
 		}
 	}
-	
+
 }
 
 class GameModel {
@@ -106,8 +90,14 @@ class GameModel {
 	}
 }
 
-let scene = null;
-
+class Obstacle {
+	constructor(sprite, lane, speed, position) {
+		this.sprite = sprite;
+		this.lane = lane;
+		this.speed = speed;
+		this.position = position;
+	}
+}
 
 
 
@@ -120,7 +110,7 @@ class RoadComponent extends Component {
 
 	draw(ctx) {
 		let currentPosition = this.gameModel.currentPosition;
-		
+
 		var posX = this.spriteMgr.getBgrWidth();
 		var spriteHeight = this.spriteMgr.getRoad().height;
 		var canvasHeight = this.scene.context.canvasHeight;
@@ -155,34 +145,18 @@ class RoadComponent extends Component {
 	}
 }
 
-class Obstacle {
-	constructor(sprite, lane, speed, position) {
-		this.sprite = sprite;
-		this.lane = lane;
-		this.speed = speed;
-		this.position = position;
-	}
-}
 
 class ObstacleComponent extends Component {
-	oninit(){
+	
+	oninit() {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 	}
-	
-	draw(ctx){
-		var sprite = this.owner.sprite;
-		let currentPosition = this.gameModel.currentPosition;
 
-		ctx.drawImage(this.spriteMgr.atlas, sprite.offsetX, sprite.offsetY,
-			sprite.width, sprite.height, this.owner.posX, currentPosition - this.owner.posY, sprite.width, sprite.height);
-
-	}
-	
 	update(delta, absolute) {
 		this.owner.posY += this.owner.getAttribute(ATTR_SPEED);
 		let currentPosition = this.gameModel.currentPosition;
-		
+
 		if ((currentPosition - this.owner.posY) > 1000) {
 			// delete obstacle
 			this.scene.removeGameObject(this.owner);
@@ -195,6 +169,14 @@ class ObstacleManager extends Component {
 	oninit() {
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.subscribe(MSG_OBJECT_REMOVED);
+		this.obstacles = new Map();
+	}
+
+	onmessage(msg) {
+		if (msg.action == MSG_OBJECT_REMOVED) {
+			this.obstacles.delete (msg.gameObject.id);
+		}
 	}
 
 	update(delta, absolute) {
@@ -219,18 +201,18 @@ class ObstacleManager extends Component {
 				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
 			}
 			if (rnd == 3) {
-				sprite =this.spriteMgr.getObstacle("truck", 1);
+				sprite = this.spriteMgr.getObstacle("truck", 1);
 				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
 			}
 			if (rnd == 4) {
-				sprite =this.spriteMgr.getObstacle("static");
+				sprite = this.spriteMgr.getObstacle("static");
 			}
 			if (rnd == 5) {
-				sprite =this.spriteMgr.getObstacle("static", 1);
+				sprite = this.spriteMgr.getObstacle("static", 1);
 			}
-			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width/2;
+			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width / 2;
 			let posY = this.gameModel.currentPosition + 200;
-		
+
 			let newObj = new GameObject("obstacle");
 			newObj.sprite = sprite;
 			newObj.posX = posX;
@@ -239,16 +221,88 @@ class ObstacleManager extends Component {
 			newObj.addAttribute(ATTR_LANE, lane);
 			newObj.addAttribute(ATTR_SPEED, speed);
 			newObj.addComponent(new ObstacleComponent());
+			newObj.addComponent(new RoadObjectRenderer());
 			this.scene.addGameObject(newObj);
+			this.obstacles.set(newObj.id, newObj);
 		}
 	}
+}
 
+class RoadObjectRenderer extends Component {
+	oninit() {
+		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+
+	draw(ctx) {
+		if (this.owner.sprite != null) {
+			let currentPosition = this.gameModel.currentPosition;
+
+			ctx.drawImage(this.spriteMgr.atlas, this.owner.sprite.offsetX, this.owner.sprite.offsetY,
+				this.owner.sprite.width, this.owner.sprite.height, this.owner.posX, currentPosition - this.owner.posY, this.owner.sprite.width, this.owner.sprite.height);
+		}
+	}
 }
 
 class CarController extends Component {
 	oninit() {
 		this.steeringTime = 0;
+		this.steeringSourcePosX = 0;
+		this.steeringDuration = 1000;
+		this.steeringState = STEERING_NONE;
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+
+	steerLeft() {
+		this.steeringState = STEERING_LEFT;
+		this.steeringTime = 0;
+		this.steeringSourcePosX = this.owner.posX;
+		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
+		this.owner.addAttribute(ATTR_LANE, currentCarLane - 1);
+	}
+
+	steerRight() {
+		this.steeringState = STEERING_RIGHT;
+		this.steeringTime = 0;
+		this.steeringSourcePosX = this.owner.posX;
+		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
+		this.owner.addAttribute(ATTR_LANE, currentCarLane + 1);
+	}
+
+	update(delta, absolute) {
+
+		this.owner.posY += this.owner.getAttribute(ATTR_SPEED);
+
+		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
+
+		if (this.steeringState != STEERING_NONE && this.steeringTime == 0) {
+			this.steeringTime = absolute;
+		}
+
+		let road = this.spriteMgr.getRoad();
+		let bgrWidth = this.spriteMgr.getBgrWidth();
+
+		if (this.steeringState == STEERING_LEFT || this.steeringState == STEERING_RIGHT) {
+
+			let increment = this.steeringState == STEERING_LEFT ? -1 : 1;
+			var desiredLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane) - this.spriteMgr.getCar().width / 2;
+
+			var progress = Math.min(1, (absolute - this.steeringTime) / (this.steeringDuration));
+			// change car location
+			this.owner.posX = this.steeringSourcePosX + (desiredLocationX - this.steeringSourcePosX) * progress;
+
+			if (progress >= 1) {
+				this.steeringState = STEERING_NONE;
+				this.steeringTime = 0;
+			}
+		}
+	}
+}
+
+class CarTouchController extends CarController {
+	oninit() {
+		super.oninit();
 		this.subscribe(MSG_TOUCH);
 	}
 
@@ -259,49 +313,23 @@ class CarController extends Component {
 
 			let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 			if (posX < this.owner.posX && currentCarLane > 0) {
-				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_STEERING_LEFT);
+				this.steerLeft();
 			}
 
 			if (posX > (this.owner.posX + this.spriteMgr.getCar().width) && currentCarLane < 2) {
-				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_STEERING_RIGHT);
+				this.steerRight();
 			}
 		}
 	}
-
-	update(delta, absolute) {
-		let currentCarState = this.owner.getAttribute(ATTR_CAR_STATE);
-		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
-		if (currentCarState != CAR_STATE_NONE && this.steeringTime == 0) {
-			this.steeringTime = absolute;
-		}
-		
-		let road = this.spriteMgr.getRoad();
-		let bgrWidth = this.spriteMgr.getBgrWidth();
-
-		if (currentCarState == CAR_STATE_STEERING_LEFT || currentCarState == CAR_STATE_STEERING_RIGHT) {
-			let increment = currentCarState == CAR_STATE_STEERING_LEFT ? -1 : 1;
-			var carLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane) - this.spriteMgr.getCar().width/2;
-			var desiredLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane + increment) - this.spriteMgr.getCar().width/2;
-
-			var progress = Math.min(1, (absolute - this.steeringTime) / (500));
-			// change car location
-			this.owner.posX = carLocationX + (desiredLocationX - carLocationX) * progress;
-
-			if (progress >= 1) {
-				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_NONE);
-				this.owner.addAttribute(ATTR_LANE, currentCarLane + increment);
-				this.steeringTime = 0;
-			}
-		}
-	}
-
 }
 
 class GameManager extends Component {
-	
-	update(delta, absolute){
-		let model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
-		model.currentPosition += model.currentSpeed;
+
+	oninit() {
+		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+
+	update(delta, absolute) {
+		this.model.currentPosition += this.model.currentSpeed;
 	}
 }
-

@@ -65,15 +65,15 @@ function initGame() {
 
 	let car = new GameObject("car");
 	car.sprite = spriteMgr.getCar();
-
+	car.addAttribute(ATTR_SPEED, model.currentSpeed);
+	
 	// place the car into the middle lane
 	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfRoad(1) - car.sprite.width/2;
-	car.posY = canvas.height - 1.5 * spriteMgr.getCar().height;
-	car.addComponent(new Renderer());
-	car.addComponent(new CarController());
+	car.posY = model.currentPosition -canvas.height + 1.5 * spriteMgr.getCar().height;
+	car.addComponent(new CarTouchController());
+	car.addComponent(new RoadObjectRenderer());
 	car.zIndex = 5;
 	
-	car.addAttribute(ATTR_CAR_STATE, CAR_STATE_NONE);
 	car.addAttribute(ATTR_LANE, 1);
 
 	scene.addGameObject(car);
