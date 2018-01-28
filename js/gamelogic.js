@@ -120,6 +120,13 @@ const ATTR_CAR_STATE = 101;
 const ATTR_LANE = 102;
 const MSG_TOUCH = 103;
 
+class SpriteManager {
+	constructor(sprites, atlas){
+		this.sprites = sprites;
+		this.atlas = atlas;
+	}
+}
+
 class GameModel {
 	constructor(atlas, sprites) {
 		this.atlas = atlas;
@@ -153,24 +160,7 @@ class GameModel {
 
 let scene = null;
 
-var imagesToLoad = ["speeddriver.png"];
-var loadedImages = [];
 
-function loadImages() {
-	promises = [];
-	for (var i = 0; i < imagesToLoad.length; i++) {
-		let path = imagesToLoad[i];
-		promises.push(loadImage("images/" + path).then((prom) => {
-				loadedImages[path] = prom;
-				return true;
-			}));
-	}
-	return Promise.all(promises);
-}
-
-function getAtlas() {
-	return loadedImages[imagesToLoad[0]];
-}
 
 // ===========================================================================
 // Main

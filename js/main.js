@@ -1,24 +1,45 @@
-var fps = 30; 
-var interval = 1000 / fps;
-var lastTime = (new Date()).getTime(); 
-var gameTime = 0;
+var fps = 30; 							// frames per second
+var lastTime = (new Date()).getTime(); 	// last update time
+var gameTime = 0;						// number of ms since the game started
+var sprites = null;						// sprites.json
 
+var spriteAssets = ["speeddriver.png"];	// path to all assets
+var loadedImages = [];
 
 var canvas; 
 var canvasCtx;
 
 window.onload = function () {
-
+	// get canvas
 	canvas = document.getElementById('gameCanvas');
+	canvasCtx = canvas.getContext('2d');
+
+	// init component microengine
 	let context = new Context(canvas);
 	scene = new Scene(context);
-
-	canvasCtx = canvas.getContext('2d');
 
 	var currentTime = (new Date()).getTime();
 	gameTime = (new Date()).getTime() - currentTime;
 
-	loadImages().then(initGame).then(gameLoop);
+	// load assets, init game and start the loop
+	loadAssets()
+	.then(initGame)
+	.then(gameLoop);
+}
+
+function loadAssets() {
+	promises = [];
+	// load all images
+	for (let spriteAsset  of spriteAssets) {
+		promises.push(loadImage("images/" + spriteAsset).then((prom) => {
+				loadedImages[spriteAsset] = prom;
+			}));
+	}
+	
+	// load json with sprite data
+	promises.push(fetch("js/sprites.json").then((response) => {sprites = response.json;}));
+	
+	return Promise.all(promises);
 }
 
 function initGame() {
@@ -53,18 +74,26 @@ function initGame() {
 	return true;
 }
 
+function getAtlas() {
+	return loadedImages[spriteAssets[0]];
+}
+
+
 function gameLoop() {
 	window.requestAnimationFrame(gameLoop);
 
 	var currentTime = (new Date()).getTime();
-	var delta = (currentTime - lastTime);
+	let interval = 1000/fps;
+	// delta shouldn't exceed double of period
+	var delta = Math.min(interval*2, (currentTime - lastTime));
+	
 	gameTime += delta;
 
 	if (delta > interval) {
+		// clear canvas and call update and render function upon the scene
 		canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-		scene._update(delta, gameTime);
-		scene._draw(canvasCtx);
+		scene.update(delta, gameTime);
+		scene.draw(canvasCtx);
 		lastTime = currentTime - (delta % interval);
 	}
-
 }

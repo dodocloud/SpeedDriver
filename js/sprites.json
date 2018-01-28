@@ -1,110 +1,131 @@
 {
-	road: {
-		offsetX: 262,
-		offsetY: 2,
-		width: 169,
-		height: 154
+	"road": {
+		"offsetX": 262,
+		"offsetY": 2,
+		"width": 169,
+		"height": 154
 	},
-	grass_left_1: {
-		offsetX: 2,
-		offsetY: 134,
-		width: 82,
-		height: 154
+	"bgr_left" : [
+		{
+			"type" : "grass",
+			"offsetX" : 2,
+			"offsetY" : 134,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "grass",
+			"offsetX" : 90,
+			"offsetY" : 134,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "pond",
+			"offsetX" : 2,
+			"offsetY" : 294,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "forest",
+			"offsetX" : 90,
+			"offsetY" : 294,
+			"width" : 81,
+			"height" : 154
+		}
+	],
+	"bgr_right" : [
+		{
+			"type" : "grass",
+			"offsetX" : 178,
+			"offsetY" : 162,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "grass",
+			"offsetX" : 266,
+			"offsetY" : 162,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "carpet",
+			"offsetX" : 178,
+			"offsetY" : 322,
+			"width" : 81,
+			"height" : 154
+		},
+		{
+			"type" : "forest",
+			"offsetX" : 266,
+			"offsetY" : 322,
+			"width" : 81,
+			"height" : 154
+		}
+	],
+	"car": {
+		"offsetX": 352,
+		"offsetY": 160,
+		"width": 41,
+		"height": 67
 	},
-	grass_left_2: {
-		offsetX: 90,
-		offsetY: 134,
-		width: 81,
-		height: 154
+	"car_destroyed": {
+		"offsetX": 396,
+		"offsetY": 173,
+		"width": 41,
+		"height": 67
 	},
-	grass_left_3: {
-		offsetX: 2,
-		offsetY: 294,
-		width: 81,
-		height: 154
-	},
-	grass_left_4: {
-		offsetX: 90,
-		offsetY: 294,
-		width: 81,
-		height: 154
-	},
-	grass_right_1: {
-		offsetX: 178,
-		offsetY: 162,
-		width: 81,
-		height: 154
-	},
-	grass_right_2: {
-		offsetX: 266,
-		offsetY: 162,
-		width: 81,
-		height: 154
-	},
-	grass_right_3: {
-		offsetX: 178,
-		offsetY: 322,
-		width: 81,
-		height: 154
-	},
-	grass_right_4: {
-		offsetX: 266,
-		offsetY: 322,
-		width: 81,
-		height: 154
-	},
-	car: {
-		offsetX: 352,
-		offsetY: 160,
-		width: 41,
-		height: 67
-	},
-	car_destroyed: {
-		offsetX: 396,
-		offsetY: 173,
-		width: 41,
-		height: 67
-	},
-	obt_car_1: {
-		offsetX: 44,
-		offsetY: 452,
-		width: 35,
-		height: 48
-	},
-	obt_car_2: {
-		offsetX: 440,
-		offsetY: 176,
-		width: 41,
-		height: 61
-	},
-	obt_car_3: {
-		offsetX: 436,
-		offsetY: 0,
-		width: 45,
-		height: 86
-	},
-	obt_car_4: {
-		offsetX: 436,
-		offsetY: 88,
-		width: 45,
-		height: 86
-	},
-	obt_car_5: {
-		offsetX: 352,
-		offsetY: 228,
-		width: 32,
-		height: 47
-	},
-	obt_obt: {
-		offsetX: 176,
-		offsetY: 132,
-		width: 53,
-		height: 21
-	},
-	obt_obt_2: {
-		offsetX: 352,
-		offsetY: 274,
-		width: 26,
-		height: 25
-	}
+	"obstacles" : [
+		{
+			"type" : "car",
+			"offsetX": 44,
+			"offsetY": 452,
+			"width": 35,
+			"height": 48
+		},
+		{
+			"type" : "car",
+			"offsetX": 440,
+			"offsetY": 176,
+			"width": 41,
+			"height": 61
+		},
+		{
+			"type" : "truck",
+			"offsetX": 436,
+			"offsetY": 0,
+			"width": 45,
+			"height": 86
+		},
+		{
+			"type" : "car",
+			"offsetX": 352,
+			"offsetY": 228,
+			"width": 32,
+			"height": 47
+		},
+		{
+			"type" : "truck",
+			"offsetX": 436,
+			"offsetY": 88,
+			"width": 45,
+			"height": 86
+		},
+		{
+			"type" : "static",
+			"offsetX": 176,
+			"offsetY": 132,
+			"width": 53,
+			"height": 21
+		},
+		{
+			"type" : "static",
+			"offsetX": 352,
+			"offsetY": 274,
+			"width": 26,
+			"height": 25
+		}
+	]
 }
