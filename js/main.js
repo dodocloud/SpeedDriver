@@ -59,7 +59,7 @@ function initGame() {
 	
 	let root = new GameObject("root");
 	root.addComponent(new InputManager());
-	root.addComponent(new GameManager());
+	
 	scene.addGameObject(root);
 
 	let road = new GameObject("road");
@@ -68,11 +68,11 @@ function initGame() {
 
 	let car = new GameObject("car");
 	car.sprite = spriteMgr.getCar();
-	car.addAttribute(ATTR_SPEED, model.currentSpeed);
+	car.addAttribute(ATTR_SPEED, 30);
 	
 	// place the car into the middle lane
 	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfRoad(1) - car.sprite.width/2;
-	car.posY = model.currentPosition -canvas.height + 1.5 * spriteMgr.getCar().height;
+	car.posY = model.cameraPosition -canvas.height + 1.5 * spriteMgr.getCar().height;
 	car.addComponent(new CarTouchController());
 	car.addComponent(new RoadObjectRenderer());
 	car.zIndex = 5;
@@ -81,6 +81,8 @@ function initGame() {
 
 	scene.addGameObject(car);
 
+	root.addComponent(new CameraComponent());
+	
 	let obstacleMgr = new GameObject("obstacle_manager");
 	obstacleMgr.addComponent(new ObstacleManager());
 	scene.addGameObject(obstacleMgr);
@@ -100,6 +102,12 @@ function initGame() {
 	lives.zIndex = 10;
 	lives.addComponent(new LivesComponent());
 	scene.addGameObject(lives);
+	
+	let gameMgr = new GameObject("gameManager");
+	gameMgr.addComponent(new GameManager());
+	gameMgr.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
+	gameMgr.posY = canvas.height/2;
+	scene.addGameObject(gameMgr);
 	
 	return true;
 }

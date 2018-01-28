@@ -103,7 +103,7 @@ class ObstacleMap {
 		this.count--;
 	}
 
-	isPlaceFreeForObstacle(topPos, bottomPos, lane) {
+	isPlaceFreeForObstacle(topPos, bottomPos, lane, tolerance = 20) {
 
 		for (let[key, val]of this.obstacles) {
 			if (val.getAttribute(ATTR_LANE) != lane) {
@@ -114,7 +114,7 @@ class ObstacleMap {
 			let obstacleBottomPos = val.posY - val.sprite.height;
 			let intersection = -Math.max(obstacleBottomPos - 20, bottomPos) + Math.min(obstacleTopPos + 20, topPos);
 
-			if (intersection >= 0) {
+			if (intersection >= tolerance) {
 				return false;
 			}
 		}
@@ -155,9 +155,10 @@ class ObstacleMap {
 
 class GameModel {
 	constructor() {
-		this.currentPosition = 0;
-		this.currentSpeed = 30;
+		this.cameraPosition = 0;
+		this.cameraSpeed = 0;
 		this.lives = 3;
+		this.round = 1;
 	}
 }
 
@@ -204,7 +205,7 @@ class TextDisplayComponent extends Component {
 	
 	draw(ctx){
 		ctx.fillStyle = "rgba(255, 255, 255, "+this.opacity+")";
-		ctx.textBaseline = 'top';
+		ctx.textAlign = 'center';
 		ctx.fillText  (this.text, this.owner.posX, this.owner.posY);
 	}
 
@@ -215,6 +216,7 @@ class TextDisplayComponent extends Component {
 		
 		let progress = (absolute - this.startTime)/this.duration;
 		
+		// opacity goes from 0 to 1 and back to 0
 		if(progress > 0.5){
 			this.opacity = (1-progress)*2;
 		}else{
@@ -242,13 +244,14 @@ class SpeedbarComponent extends Component {
 		let speedRatio = carSpeed / MAXIMUM_SPEED;
 		let shift = barFill.height * (1 - speedRatio);
 
-		ctx.drawImage(this.spriteMgr.atlas, barCover.offsetX, barCover.offsetY,
-			barCover.width, barCover.height, this.owner.posX, this.owner.posY,
-			barCover.width, barCover.height);
-
+		// draw the filled bar first
 		ctx.drawImage(this.spriteMgr.atlas, barFill.offsetX, barFill.offsetY + shift,
 			barFill.width, barFill.height - shift, this.owner.posX + 2, this.owner.posY + 2 + shift,
 			barFill.width, barFill.height - shift);
+			
+		ctx.drawImage(this.spriteMgr.atlas, barCover.offsetX, barCover.offsetY,
+			barCover.width, barCover.height, this.owner.posX, this.owner.posY,
+			barCover.width, barCover.height);
 	}
 }
 
@@ -282,15 +285,15 @@ class RoadComponent extends Component {
 	}
 
 	draw(ctx) {
-		let currentPosition = this.gameModel.currentPosition;
+		let cameraPosition = this.gameModel.cameraPosition;
 
 		var posX = this.spriteMgr.getBgrWidth();
 		var spriteHeight = this.spriteMgr.getRoad().height;
 		var canvasHeight = this.scene.context.canvasHeight;
 		var mults = Math.round(canvasHeight / spriteHeight) + 1;
-		var currentBlock = Math.floor(currentPosition / spriteHeight) + mults;
+		var currentBlock = Math.floor(cameraPosition / spriteHeight) + mults;
 
-		var position = Math.min(spriteHeight, spriteHeight - currentPosition % spriteHeight);
+		var position = Math.min(spriteHeight, spriteHeight - cameraPosition % spriteHeight);
 		var posY = 0;
 		for (var i = 0; i < mults; i++) {
 			var sprite = this.spriteMgr.getRoad();
@@ -337,8 +340,8 @@ class ObstacleComponent extends Component {
 			if (nearest != null) {
 				let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
 
-				let criticalDistance = 200;
-				let desiredDistance = 20;
+				let criticalDistance = 200;	// if closer than 200 units, decelerate!
+				let desiredDistance = 20; // stop 20 units in front of the obstacle
 
 				if (distance < criticalDistance) {
 
@@ -354,11 +357,12 @@ class ObstacleComponent extends Component {
 				}
 			}
 
+			// fix velocity based on the current acceleration value
 			this.owner.addAttribute(ATTR_SPEED, Math.max(0, currentSpeed - this.currentDeceleration * delta * 0.01));
 		}
-		let currentPosition = this.gameModel.currentPosition;
+		let cameraPosition = this.gameModel.cameraPosition;
 
-		if ((currentPosition - this.owner.posY) > 1000) {
+		if ((cameraPosition - this.owner.posY) > 1000) {
 			// delete obstacle
 			this.scene.removeGameObject(this.owner);
 		}
@@ -381,7 +385,6 @@ class ObstacleManager extends Component {
 	}
 
 	update(delta, absolute) {
-		var globalSpeed = this.gameModel.currentSpeed;
 
 		if (Math.random() <= 0.1) {
 			var rnd = Math.floor(Math.random() * 6);
@@ -392,19 +395,19 @@ class ObstacleManager extends Component {
 
 			if (rnd == 0) {
 				sprite = this.spriteMgr.getObstacle("car", 0);
-				speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+				speed = MAXIMUM_SPEED / 4 + Math.random() * MAXIMUM_SPEED * 0.5;
 			}
 			if (rnd == 1) {
 				sprite = this.spriteMgr.getObstacle("car", 1);
-				speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+				speed = MAXIMUM_SPEED / 4 + Math.random() * MAXIMUM_SPEED * 0.5;
 			}
 			if (rnd == 2) {
 				sprite = this.spriteMgr.getObstacle("truck", 0);
-				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+				speed = MAXIMUM_SPEED / 8 + Math.random() * MAXIMUM_SPEED * 0.5;
 			}
 			if (rnd == 3) {
 				sprite = this.spriteMgr.getObstacle("truck", 1);
-				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+				speed = MAXIMUM_SPEED / 8 + Math.random() * MAXIMUM_SPEED * 0.5;
 			}
 			if (rnd == 4) {
 				sprite = this.spriteMgr.getObstacle("static");
@@ -414,7 +417,7 @@ class ObstacleManager extends Component {
 			}
 
 			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width / 2;
-			let posY = this.gameModel.currentPosition + 200;
+			let posY = this.gameModel.cameraPosition + 200;
 
 			if (this.obstacleMap.isPlaceFreeForObstacle(posY, posY - sprite.height, lane)) {
 				let newObj = new GameObject("obstacle");
@@ -434,6 +437,7 @@ class ObstacleManager extends Component {
 	}
 }
 
+// renderer for all dynamic objects
 class RoadObjectRenderer extends Component {
 	oninit() {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
@@ -442,10 +446,11 @@ class RoadObjectRenderer extends Component {
 
 	draw(ctx) {
 		if (this.owner.sprite != null) {
-			let currentPosition = this.gameModel.currentPosition;
+			let cameraPosition = this.gameModel.cameraPosition;
 
 			ctx.drawImage(this.spriteMgr.atlas, this.owner.sprite.offsetX, this.owner.sprite.offsetY,
-				this.owner.sprite.width, this.owner.sprite.height, this.owner.posX, currentPosition - this.owner.posY, this.owner.sprite.width, this.owner.sprite.height);
+				this.owner.sprite.width, this.owner.sprite.height, this.owner.posX, 
+				cameraPosition - this.owner.posY, this.owner.sprite.width, this.owner.sprite.height);
 		}
 	}
 }
@@ -473,11 +478,13 @@ class FlickerAnimation extends Component {
 		}
 
 		if ((absolute - this.lastFlicker) > (1000 / this.frequency)) {
+			// flicker
 			this.lastFlicker = absolute;
 			this.owner.visible = !this.owner.visible;
 		}
 
 		if ((absolute - this.startTime) > this.duration) {
+			// finish
 			this.owner.visible = true;
 			this.sendmsg(MSG_ANIM_ENDED);
 			this.owner.removeComponent(this);
@@ -498,12 +505,13 @@ class CarController extends Component {
 		this.immuneMode = false;
 		this.desiredVelocity = 0;
 		this.subscribe(MSG_ANIM_ENDED);
+		this.currentMaxSpeed = 30;
 	}
 
 	onmessage(msg) {
 		if (msg.action == MSG_ANIM_ENDED && msg.gameObject.id == this.owner.id) {
 			this.immuneMode = false;
-			this.accelerate(15);
+			this.accelerate(this.currentMaxSpeed);
 		}
 	}
 
@@ -534,9 +542,18 @@ class CarController extends Component {
 	update(delta, absolute) {
 		let speed = this.owner.getAttribute(ATTR_SPEED);
 
+		this.currentMaxSpeed += delta * 0.0001;
+		
+		// if the maximum speed has increased enough, accelerate to the next velocity level
+		if(this.currentMaxSpeed > speed*1.1 && this.desiredVelocity == speed){
+			this.accelerate(this.currentMaxSpeed);
+		}
+		
 		if (this.desiredVelocity == 0) {
 			this.desiredVelocity = speed;
 		} else if (this.desiredVelocity != speed) {
+			// if the desired velocity differs, we need to either accelerate or decelerate 
+			// in order to change the current velocity
 			if (this.desiredVelocity > speed) {
 				speed = Math.min(this.desiredVelocity, speed + 1 * delta * 0.01);
 			} else {
@@ -546,6 +563,7 @@ class CarController extends Component {
 			this.owner.addAttribute(ATTR_SPEED, speed);
 		}
 
+		// increment position
 		this.owner.posY += Math.floor(speed * delta * 0.01);
 
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
@@ -559,6 +577,8 @@ class CarController extends Component {
 
 		if (this.steeringState == STEERING_LEFT || this.steeringState == STEERING_RIGHT) {
 
+			// handle the steering behavior
+			
 			let increment = this.steeringState == STEERING_LEFT ? -1 : 1;
 			var desiredLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane) - this.spriteMgr.getCar().width / 2;
 
@@ -573,13 +593,16 @@ class CarController extends Component {
 		}
 
 		if (!this.immuneMode) {
+			// check for collisions
 			let collided = this.obstacleMap.findCollidedObstacle(this.owner);
 
 			if (collided != null) {
 				// handle collision
 				this.owner.addComponent(new FlickerAnimation(4000));
 				this.immuneMode = true;
-				this.decelerate(5);
+				this.decelerate(this.currentMaxSpeed/2);
+				
+				this.owner.addComponent(new TextDisplayComponent("Round ", 5000));
 			}
 		}
 	}
@@ -610,18 +633,31 @@ class CarTouchController extends CarController {
 }
 
 class GameManager extends Component {
+	oninit(){
+		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+		this.owner.addComponent(new TextDisplayComponent("Round "+this.model.round, 5000));
+	}
+	
+	onmessage(msg){
+		
+	}
+	
+	update(delta, absolute){
+		
+	}
+}
+
+class CameraComponent extends Component {
 
 	oninit() {
 		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
-		this.owner.addComponent(new TextDisplayComponent("mojo", 5000));
+		this.car = this.scene.findAllObjectsByTag("car")[0];
 	}
 
 	update(delta, absolute) {
-		if (this.car === undefined) {
-			this.car = this.scene.findAllObjectsByTag("car")[0];
-		}
-
-		this.model.currentSpeed = this.car.getAttribute(ATTR_SPEED);
-		this.model.currentPosition += Math.floor(this.model.currentSpeed * delta * 0.01);
+		// by default, speed of the camera will be the same as the speed of the car
+		// however, we can animate the camera independently. That's why there are two attributes 
+		this.model.cameraSpeed = this.car.getAttribute(ATTR_SPEED);
+		this.model.cameraPosition += Math.floor(this.model.cameraSpeed * delta * 0.01);
 	}
 }
