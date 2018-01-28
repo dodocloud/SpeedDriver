@@ -127,5 +127,23 @@
 			"width": 26,
 			"height": 25
 		}
-	]
+	],
+	"bar_cover" : {
+		"offsetX" : 486,
+		"offsetY" : 2,
+		"width" : 16,
+		"height" : 133
+	},
+	"bar_fill" : {
+		"offsetX" : 486,
+		"offsetY" : 142,
+		"width" : 12,
+		"height" : 129
+	},
+	"life" : {
+		"offsetX" : 2,
+		"offsetY" : 454,
+		"width" : 37,
+		"height" : 47
+	}
 }

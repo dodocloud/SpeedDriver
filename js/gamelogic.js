@@ -39,8 +39,20 @@ class SpriteManager {
 		return this.sprites.car;
 	}
 
+	getLife() {
+		return this.sprites.life;
+	}
+
 	getCarDestroyed() {
 		return this.sprites.car_destroyed;
+	}
+
+	getBarCover() {
+		return this.sprites.bar_cover;
+	}
+
+	getBarFill() {
+		return this.sprites.bar_fill;
 	}
 
 	getObstacle(type, index = 0) {
@@ -145,6 +157,7 @@ class GameModel {
 	constructor() {
 		this.currentPosition = 0;
 		this.currentSpeed = 30;
+		this.lives = 3;
 	}
 }
 
@@ -154,6 +167,88 @@ class Obstacle {
 		this.lane = lane;
 		this.speed = speed;
 		this.position = position;
+	}
+}
+
+const MAXIMUM_SPEED = 50;
+
+class LivesComponent extends Component {
+	oninit() {
+		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+	}
+
+	draw(ctx) {
+		let lives = this.model.lives;
+		let sprite = this.owner.sprite;
+		
+		for (let i = 0; i < lives; i++) {
+			ctx.drawImage(this.spriteMgr.atlas, sprite.offsetX, sprite.offsetY,
+				sprite.width, sprite.height, 10+(sprite.width) * i, 20,
+				sprite.width, sprite.height);
+		}
+	}
+}
+
+class TextDisplayComponent extends Component {
+	constructor(text, duration){
+		super();
+		this.text = text;
+		this.duration = duration;
+		this.opacity = 0;
+	}
+	
+	oninit(){
+		this.startTime = 0;
+	}
+	
+	draw(ctx){
+		ctx.fillStyle = "rgba(255, 255, 255, "+this.opacity+")";
+		ctx.textBaseline = 'top';
+		ctx.fillText  (this.text, this.owner.posX, this.owner.posY);
+	}
+
+	update(delta, absolute) {
+		if (this.startTime == 0) {
+			this.startTime = absolute;
+		}
+		
+		let progress = (absolute - this.startTime)/this.duration;
+		
+		if(progress > 0.5){
+			this.opacity = (1-progress)*2;
+		}else{
+			this.opacity = (progress)*2;
+		}
+
+		if ((absolute - this.startTime) > this.duration) {
+			this.owner.removeComponent(this);
+		}
+	}
+	
+}
+
+class SpeedbarComponent extends Component {
+	oninit() {
+		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.car = this.scene.findAllObjectsByTag("car")[0];
+	}
+
+	draw(ctx) {
+		let barCover = this.spriteMgr.getBarCover();
+		let barFill = this.spriteMgr.getBarFill();
+
+		let carSpeed = this.car.getAttribute(ATTR_SPEED);
+		let speedRatio = carSpeed / MAXIMUM_SPEED;
+		let shift = barFill.height * (1 - speedRatio);
+
+		ctx.drawImage(this.spriteMgr.atlas, barCover.offsetX, barCover.offsetY,
+			barCover.width, barCover.height, this.owner.posX, this.owner.posY,
+			barCover.width, barCover.height);
+
+		ctx.drawImage(this.spriteMgr.atlas, barFill.offsetX, barFill.offsetY + shift,
+			barFill.width, barFill.height - shift, this.owner.posX + 2, this.owner.posY + 2 + shift,
+			barFill.width, barFill.height - shift);
 	}
 }
 
@@ -391,7 +486,7 @@ class FlickerAnimation extends Component {
 }
 
 class CarController extends Component {
-	
+
 	oninit() {
 		this.steeringTime = 0;
 		this.steeringSourcePosX = 0;
@@ -411,12 +506,12 @@ class CarController extends Component {
 			this.accelerate(15);
 		}
 	}
-	
-	accelerate(desiredVelocity){
+
+	accelerate(desiredVelocity) {
 		this.desiredVelocity = desiredVelocity;
 	}
-	
-	decelerate(desiredVelocity){
+
+	decelerate(desiredVelocity) {
 		this.desiredVelocity = desiredVelocity;
 	}
 
@@ -438,19 +533,19 @@ class CarController extends Component {
 
 	update(delta, absolute) {
 		let speed = this.owner.getAttribute(ATTR_SPEED);
-		
-		if(this.desiredVelocity == 0){
+
+		if (this.desiredVelocity == 0) {
 			this.desiredVelocity = speed;
-		}else if(this.desiredVelocity != speed) {
-			if(this.desiredVelocity > speed){
+		} else if (this.desiredVelocity != speed) {
+			if (this.desiredVelocity > speed) {
 				speed = Math.min(this.desiredVelocity, speed + 1 * delta * 0.01);
-			}else{
+			} else {
 				speed = Math.max(this.desiredVelocity, speed + -1 * delta * 0.01);
 			}
-			
+
 			this.owner.addAttribute(ATTR_SPEED, speed);
 		}
-		
+
 		this.owner.posY += Math.floor(speed * delta * 0.01);
 
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
@@ -518,13 +613,14 @@ class GameManager extends Component {
 
 	oninit() {
 		this.model = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+		this.owner.addComponent(new TextDisplayComponent("mojo", 5000));
 	}
 
 	update(delta, absolute) {
-		if(this.car === undefined){
+		if (this.car === undefined) {
 			this.car = this.scene.findAllObjectsByTag("car")[0];
 		}
-		
+
 		this.model.currentSpeed = this.car.getAttribute(ATTR_SPEED);
 		this.model.currentPosition += Math.floor(this.model.currentSpeed * delta * 0.01);
 	}

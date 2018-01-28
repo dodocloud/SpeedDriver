@@ -12,7 +12,9 @@ var canvasCtx;
 window.onload = function () {
 	// get canvas
 	canvas = document.getElementById('gameCanvas');
+	
 	canvasCtx = canvas.getContext('2d');
+	canvasCtx.font = '24px Impact';
 
 	// init component microengine
 	let context = new Context(canvas);
@@ -82,6 +84,22 @@ function initGame() {
 	let obstacleMgr = new GameObject("obstacle_manager");
 	obstacleMgr.addComponent(new ObstacleManager());
 	scene.addGameObject(obstacleMgr);
+	
+	
+	let speedbar = new GameObject("bar");
+	let sprite = spriteMgr.getBarCover();
+	speedbar.posX = spriteMgr.getBgrWidth() * 2 + spriteMgr.getRoad().width - sprite.width - 20;
+	speedbar.posY = 20;
+	speedbar.zIndex = 10;
+	speedbar.addComponent(new SpeedbarComponent());
+	scene.addGameObject(speedbar);
+	
+	let lives = new GameObject("lives");
+	let livesSprite  = spriteMgr.getLife();
+	lives.sprite = livesSprite;
+	lives.zIndex = 10;
+	lives.addComponent(new LivesComponent());
+	scene.addGameObject(lives);
 	
 	return true;
 }
