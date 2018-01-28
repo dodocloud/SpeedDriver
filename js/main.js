@@ -98,11 +98,16 @@ const CAR_STATE_NONE = 0;
 const CAR_STATE_STEERING_LEFT = 1;
 const CAR_STATE_STEERING_RIGHT = 2;
 const ATTR_GAME_MODEL = 100;
+const ATTR_CAR_STATE = 101;
+const ATTR_LANE = 102;
+const MSG_TOUCH = 103;
 
 class GameModel {
 	constructor(atlas, sprites) {
 		this.atlas = atlas;
 		this.sprites = sprites;
+		this.currentPosition = 0;
+		this.currentSpeed = 10;
 	}
 
 	getLeftGrass(offset) {
@@ -149,105 +154,24 @@ function getAtlas() {
 	return loadedImages[imagesToLoad[0]];
 }
 
-
-
 // ===========================================================================
 // Main
 
-var canvas;
-var cw, ch, cx, fps = 30, interval = 1000 / fps,
-lastTime = (new Date()).getTime(), currentTime = 0, delta = 0;
-var gameTime = 0;
 
-window.onload = function () {
-
-	canvas = document.getElementById('gameCanvas');
-	let context = new Context(canvas);
-	scene = new Scene(context);
-
-	cw = canvas.width,
-	ch = canvas.height,
-
-	currentCarLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * 1;
-
-	cx = canvas.getContext('2d');
-
-	currentTime = (new Date()).getTime();
-	gameTime = (new Date()).getTime() - currentTime;
-
-	loadImages().then(initGame).then(gameLoop);
-}
-
-class InputManager extends Component {
-
-	oninit() {
-		this.lastTouch = null;
-
-		let context = this.scene.context;
-		let canvas = context.canvas;
-		canvas.addEventListener("touchstart", this.handleStart, false);
-		canvas.addEventListener("touchend", this.handleEnd, false);
-		canvas.addEventListener("mousedown", this.handleStart, false);
-		canvas.addEventListener("mouseup", this.handleEnd, false);
-	}
-
-	handleStart(evt) {
-		evt.preventDefault();
-		if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
-			// only single-touch
-			this.lastTouch = evt.changedTouches[0];
-		} else {
-			this.lastTouch = evt;
-		}
-	}
-
-	handleEnd(evt) {
-		evt.preventDefault();
-		var posX,
-		posY;
-
-		if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
-			posX = evt.changedTouches[0].pageX;
-			posY = evt.changedTouches[1].pageY;
-
-		} else {
-			// mouse
-			posX = evt.pageX;
-			posY = evt.pageY;
-		}
-
-		if (Math.abs(this.lastTouch.pageX - posX) < 10 &&
-			Math.abs(this.lastTouch.pageY - posY) < 10) {
-			handleTouch(posX, posY);
-		}
-	}
-
-}
-
-function handleTouch(posX, posY) {
-	if (posX < currentCarLocationX && currentCarLane > 0) {
-		currentCarState = CAR_STATE_STEERING_LEFT;
-	}
-
-	if (posX > (currentCarLocationX + mdata.car.width) && currentCarLane < 2) {
-		currentCarState = CAR_STATE_STEERING_RIGHT;
-	}
-}
-
-var currentPosition = 0;
-var currentSpeed = 10;
 
 class RoadComponent extends Component {
 
-	oninit(canvas) {
+	oninit() {
 		let root = this.scene.findAllObjectsByTag("root")[0];
 		this.gameModel = root.getAttribute(ATTR_GAME_MODEL);
 	}
 
 	draw(ctx) {
+		let currentPosition = this.gameModel.currentPosition;
+		
 		var posX = this.gameModel.sprites.grass_left_1.width;
 		var spriteHeight = this.gameModel.sprites.road.height;
-		var canvasHeight = ch;
+		var canvasHeight = this.owner.scene.context.canvasHeight;
 		var mults = Math.round(canvasHeight / spriteHeight) + 1;
 		var currentBlock = Math.floor(currentPosition / spriteHeight) + mults;
 
@@ -279,13 +203,6 @@ class RoadComponent extends Component {
 	}
 }
 
-function drawCar() {
-	var posX = currentCarLocationX;
-	var posY = ch - 1.5 * mdata.car.height;
-	cx.drawImage(getAtlas(), mdata.car.offsetX, mdata.car.offsetY,
-		mdata.car.width, mdata.car.height, posX, posY, mdata.car.width, mdata.car.height);
-}
-
 class Obstacle {
 	constructor(sprite, lane, speed, position) {
 		this.sprite = sprite;
@@ -295,144 +212,122 @@ class Obstacle {
 	}
 }
 
-var obstacles = [];
+class ObstacleManager extends Component {
 
-function drawObstacles() {
-	var lane = mdata.grass_left_1.width;
-
-	for (var i = 0; i < obstacles.length; i++) {
-		var obst = obstacles[i];
-		var lanePos = lane + obst.lane * mdata.road.width / 3;
-		var sprite = obst.sprite;
-
-		cx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY,
-			sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
-
-		obst.position += obst.speed;
-
-		if ((currentPosition - obst.position) > 1000) {
-			// delete obstacle
-			obstacles.splice(i, 1);
-		}
-	}
-}
-
-function createObstacle() {
-	var globalSpeed = currentSpeed;
-
-	if (Math.random() <= 0.1) {
-		var rnd = Math.floor(Math.random() * 5);
-		var sprite = null;
-		var lane = Math.floor(Math.random() * 3);
-		var speed = 0;
-
-		if (rnd == 0) {
-			sprite = mdata.obt_car_1;
-			speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
-		}
-		if (rnd == 1) {
-			sprite = mdata.obt_car_2;
-			speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
-		}
-		if (rnd == 2) {
-			sprite = mdata.obt_car_3;
-			speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
-		}
-		if (rnd == 3) {
-			sprite = mdata.obt_car_4;
-			speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
-		}
-		if (rnd == 4) {
-			sprite = mdata.obt_obt;
-		}
-		position = currentPosition + 200;
-		obstacles.push(new Obstacle(sprite, lane, speed, position));
-	}
-}
-
-var currentCarState = CAR_STATE_NONE;
-var currentCarLane = 1;
-var currentCarLocationX = 0;
-
-// t = current time
-// b = start value
-// c = change in value
-// d = duration
-var easeInOutSine = function (t, b, c, d) {
-	return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b;
-};
-
-var steeringTime = 0;
-function steerCar(absolute) {
-	if (currentCarState != CAR_STATE_NONE && steeringTime == 0) {
-		console.log(absolute);
-		steeringTime = absolute;
+	oninit() {
+		this.obstacles = [];
+		let root = this.scene.findAllObjectsByTag("root")[0];
+		this.gameModel = root.getAttribute(ATTR_GAME_MODEL);
 	}
 
-	if (currentCarState == CAR_STATE_STEERING_LEFT) {
-		var carLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * currentCarLane;
-		var desiredLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * (currentCarLane - 1);
+	draw(ctx) {
+		var lane = mdata.grass_left_1.width;
+		let currentPosition = this.gameModel.currentPosition;
+		
+		for (var i = 0; i < this.obstacles.length; i++) {
+			var obst = this.obstacles[i];
+			var lanePos = lane + obst.lane * mdata.road.width / 3;
+			var sprite = obst.sprite;
 
-		var progress = Math.min(1, (absolute - steeringTime) / (500));
-		currentCarLocationX = carLocationX + (desiredLocationX - carLocationX) * progress;
+			ctx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY,
+				sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
 
-		if (progress >= 1) {
-			currentCarState = CAR_STATE_NONE;
-			currentCarLane--;
-			steeringTime = 0;
+			obst.position += obst.speed;
+
+			if ((currentPosition - obst.position) > 1000) {
+				// delete obstacle
+				this.obstacles.splice(i, 1);
+			}
 		}
 	}
 
-	if (currentCarState == CAR_STATE_STEERING_RIGHT) {
-		var carLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * currentCarLane;
-		var desiredLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * (currentCarLane + 1);
+	update(delta, absolute) {
+		var globalSpeed = this.gameModel.currentSpeed;
 
-		var progress = Math.min(1, (absolute - steeringTime) / (500));
+		if (Math.random() <= 0.1) {
+			var rnd = Math.floor(Math.random() * 5);
+			var sprite = null;
+			var lane = Math.floor(Math.random() * 3);
+			var speed = 0;
 
-		currentCarLocationX = carLocationX + (desiredLocationX - carLocationX) * progress;
-
-		if (progress >= 1) {
-			currentCarState = CAR_STATE_NONE;
-			currentCarLane++;
-			steeringTime = 0;
+			if (rnd == 0) {
+				sprite = mdata.obt_car_1;
+				speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+			}
+			if (rnd == 1) {
+				sprite = mdata.obt_car_2;
+				speed = globalSpeed / 4 + Math.random() * globalSpeed * 0.5;
+			}
+			if (rnd == 2) {
+				sprite = mdata.obt_car_3;
+				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+			}
+			if (rnd == 3) {
+				sprite = mdata.obt_car_4;
+				speed = globalSpeed / 8 + Math.random() * globalSpeed * 0.5;
+			}
+			if (rnd == 4) {
+				sprite = mdata.obt_obt;
+			}
+			let position = this.gameModel.currentPosition + 200;
+			this.obstacles.push(new Obstacle(sprite, lane, speed, position));
 		}
-	}
-}
-
-function initGame() {
-	let model = new GameModel(getAtlas(), this.mdata);
-	let root = new GameObject("root");
-	root.addAttribute(ATTR_GAME_MODEL, model);
-	root.addComponent(new InputManager());
-	scene.addGameObject(root);
-
-	let road = new GameObject("road");
-	road.addComponent(new RoadComponent());
-	scene.addGameObject(road);
-
-	return true;
-}
-function gameLoop() {
-	window.requestAnimationFrame(gameLoop);
-
-	currentTime = (new Date()).getTime();
-	delta = (currentTime - lastTime);
-	gameTime += delta;
-
-	if (delta > interval) {
-		cx.clearRect(0, 0, cw, ch);
-		scene._update(delta, gameTime);
-		update(delta, gameTime);
-		lastTime = currentTime - (delta % interval);
 	}
 
 }
 
-function update(delta, absolute) {
-	currentPosition += currentSpeed;
-	scene._draw(cx);
-	drawCar();
-	drawObstacles();
-	createObstacle();
-	steerCar(absolute);
+class CarController extends Component {
+	oninit() {
+		this.steeringTime = 0;
+		this.subscribe(MSG_TOUCH);
+	}
+
+	onmessage(msg) {
+		if (msg.action == MSG_TOUCH) {
+			let posX = msg.data[0];
+			let posY = msg.data[1];
+
+			let currentCarLane = this.owner.getAttribute(ATTR_LANE);
+			if (posX < this.owner.posX && currentCarLane > 0) {
+				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_STEERING_LEFT);
+			}
+
+			if (posX > (this.owner.posX + mdata.car.width) && currentCarLane < 2) {
+				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_STEERING_RIGHT);
+			}
+		}
+	}
+
+	update(delta, absolute) {
+		let currentCarState = this.owner.getAttribute(ATTR_CAR_STATE);
+		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
+		if (currentCarState != CAR_STATE_NONE && this.steeringTime == 0) {
+			this.steeringTime = absolute;
+		}
+
+		if (currentCarState == CAR_STATE_STEERING_LEFT || currentCarState == CAR_STATE_STEERING_RIGHT) {
+			let increment = currentCarState == CAR_STATE_STEERING_LEFT ? -1 : 1;
+			var carLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * currentCarLane;
+			var desiredLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * (currentCarLane + increment);
+
+			var progress = Math.min(1, (absolute - this.steeringTime) / (500));
+			// change car location
+			this.owner.posX = carLocationX + (desiredLocationX - carLocationX) * progress;
+
+			if (progress >= 1) {
+				this.owner.addAttribute(ATTR_CAR_STATE, CAR_STATE_NONE);
+				this.owner.addAttribute(ATTR_LANE, currentCarLane + increment);
+				this.steeringTime = 0;
+			}
+		}
+	}
+
 }
+
+class GameManager extends Component {
+	update(delta, absolute){
+		let model = this.owner.getAttribute(ATTR_GAME_MODEL);
+		model.currentPosition += model.currentSpeed;
+	}
+}
+
