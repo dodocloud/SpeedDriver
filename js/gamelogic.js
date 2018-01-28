@@ -9,6 +9,7 @@ const ATTR_SPEED = 104;
 const ATTR_OBSTACLE_MAP = 105;
 
 const MSG_TOUCH = 103;
+const MSG_ANIM_ENDED = 104;
 
 let scene = null;
 
@@ -22,26 +23,12 @@ class SpriteManager {
 		return this.sprites.bgr_left[0].width;
 	}
 
-	getLeftGrass(offset) {
-		if (offset % 200 == 0)
-			return this.sprites.bgr_left[3];
-		if (offset % 100 == 0)
-			return this.sprites.bgr_left[2];
-
-		if (offset % 3 == 0)
-			return this.sprites.bgr_left[1];
-		return this.sprites.bgr_left[0];
+	getLeftBgr(index) {
+		return this.sprites.bgr_left[index];
 	}
 
-	getRightGrass(offset) {
-		if (offset % 200 == 0)
-			return this.sprites.bgr_right[3];
-		if (offset % 100 == 0)
-			return this.sprites.bgr_right[2];
-
-		if (offset % 3 == 0)
-			return this.sprites.bgr_right[1];
-		return this.sprites.bgr_right[0];
+	getRightBgr(index) {
+		return this.sprites.bgr_right[index];
 	}
 
 	getRoad() {
@@ -50,6 +37,10 @@ class SpriteManager {
 
 	getCar() {
 		return this.sprites.car;
+	}
+
+	getCarDestroyed() {
+		return this.sprites.car_destroyed;
 	}
 
 	getObstacle(type, index = 0) {
@@ -119,6 +110,15 @@ class ObstacleMap {
 		return true;
 	}
 
+	findCollidedObstacle(gameObject) {
+		for (let[key, val]of this.obstacles) {
+			if (gameObject.intersects(val)) {
+				return val;
+			}
+		}
+		return null;
+	}
+
 	getNearestObstacle(gameObject, sameLane = true) {
 		let lane = gameObject.getAttribute(ATTR_LANE);
 		let nearest = null;
@@ -164,6 +164,28 @@ class RoadComponent extends Component {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 	}
 
+	getLeftGrass(offset) {
+		if (offset % 200 == 0)
+			return this.spriteMgr.getLeftBgr(3);
+		if (offset % 100 == 0)
+			return this.spriteMgr.getLeftBgr(2);
+
+		if (offset % 3 == 0)
+			return this.spriteMgr.getLeftBgr(1);
+		return this.spriteMgr.getLeftBgr(0);
+	}
+
+	getRightGrass(offset) {
+		if (offset % 200 == 0)
+			return this.spriteMgr.getRightBgr(3);
+		if (offset % 100 == 0)
+			return this.spriteMgr.getRightBgr(2);
+
+		if (offset % 3 == 0)
+			return this.spriteMgr.getRightBgr(1);
+		return this.spriteMgr.getRightBgr(0);
+	}
+
 	draw(ctx) {
 		let currentPosition = this.gameModel.currentPosition;
 
@@ -186,12 +208,12 @@ class RoadComponent extends Component {
 				sprite.width, sprite.height - position, posX, posY, sprite.width, sprite.height - position);
 
 			// draw left grass
-			var leftGrass = this.spriteMgr.getLeftGrass(currentBlock - i);
+			var leftGrass = this.getLeftGrass(currentBlock - i);
 			ctx.drawImage(this.spriteMgr.atlas, leftGrass.offsetX, leftGrass.offsetY + position,
 				leftGrass.width, leftGrass.height - position, 0, posY, leftGrass.width, leftGrass.height - position);
 
 			// draw right grass
-			var rightGrass = this.spriteMgr.getRightGrass(currentBlock - i);
+			var rightGrass = this.getRightGrass(currentBlock - i);
 			ctx.drawImage(this.spriteMgr.atlas, rightGrass.offsetX, rightGrass.offsetY + position,
 				rightGrass.width, rightGrass.height - position, posX + this.spriteMgr.getRoad().width, posY, rightGrass.width, rightGrass.height - position);
 
@@ -231,7 +253,8 @@ class ObstacleComponent extends Component {
 					if (desiredSpeed < currentSpeed) {
 						// calculate deceleration in order to be on the same speed cca 20 pixels behind the obstacle
 						// a = v^2 / 2s
-						this.currentDeceleration = Math.max(0, (currentSpeed - desiredSpeed) * (currentSpeed - desiredSpeed) / (2 * Math.max(1, distance - desiredDistance)));
+						this.currentDeceleration = Math.max(0, (currentSpeed - desiredSpeed)
+								 * (currentSpeed - desiredSpeed) / (2 * Math.max(1, distance - desiredDistance)));
 					}
 				}
 			}
@@ -294,11 +317,11 @@ class ObstacleManager extends Component {
 			if (rnd == 5) {
 				sprite = this.spriteMgr.getObstacle("static", 1);
 			}
-			
+
 			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width / 2;
 			let posY = this.gameModel.currentPosition + 200;
 
-			if (this.obstacleMap.isPlaceFreeForObstacle(posY, posY-sprite.height,lane)) {
+			if (this.obstacleMap.isPlaceFreeForObstacle(posY, posY - sprite.height, lane)) {
 				let newObj = new GameObject("obstacle");
 				newObj.sprite = sprite;
 				newObj.posX = posX;
@@ -332,7 +355,43 @@ class RoadObjectRenderer extends Component {
 	}
 }
 
+class FlickerAnimation extends Component {
+
+	constructor(duration) {
+		super();
+		this.duration = duration;
+	}
+
+	oninit() {
+		this.frequency = 10;
+		this.lastFlicker = 0;
+		this.startTime = 0;
+	}
+
+	update(delta, absolute) {
+		if (this.lastFlicker == 0) {
+			this.lastFlicker = absolute;
+		}
+
+		if (this.startTime == 0) {
+			this.startTime = absolute;
+		}
+
+		if ((absolute - this.lastFlicker) > (1000 / this.frequency)) {
+			this.lastFlicker = absolute;
+			this.owner.visible = !this.owner.visible;
+		}
+
+		if ((absolute - this.startTime) > this.duration) {
+			this.owner.visible = true;
+			this.sendmsg(MSG_ANIM_ENDED);
+			this.owner.removeComponent(this);
+		}
+	}
+}
+
 class CarController extends Component {
+	
 	oninit() {
 		this.steeringTime = 0;
 		this.steeringSourcePosX = 0;
@@ -340,6 +399,25 @@ class CarController extends Component {
 		this.steeringState = STEERING_NONE;
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+		this.obstacleMap = this.scene.getGlobalAttribute(ATTR_OBSTACLE_MAP);
+		this.immuneMode = false;
+		this.desiredVelocity = 0;
+		this.subscribe(MSG_ANIM_ENDED);
+	}
+
+	onmessage(msg) {
+		if (msg.action == MSG_ANIM_ENDED && msg.gameObject.id == this.owner.id) {
+			this.immuneMode = false;
+			this.accelerate(15);
+		}
+	}
+	
+	accelerate(desiredVelocity){
+		this.desiredVelocity = desiredVelocity;
+	}
+	
+	decelerate(desiredVelocity){
+		this.desiredVelocity = desiredVelocity;
 	}
 
 	steerLeft() {
@@ -359,8 +437,21 @@ class CarController extends Component {
 	}
 
 	update(delta, absolute) {
-
-		this.owner.posY += Math.floor(this.owner.getAttribute(ATTR_SPEED) * delta * 0.01);
+		let speed = this.owner.getAttribute(ATTR_SPEED);
+		
+		if(this.desiredVelocity == 0){
+			this.desiredVelocity = speed;
+		}else if(this.desiredVelocity != speed) {
+			if(this.desiredVelocity > speed){
+				speed = Math.min(this.desiredVelocity, speed + 1 * delta * 0.01);
+			}else{
+				speed = Math.max(this.desiredVelocity, speed + -1 * delta * 0.01);
+			}
+			
+			this.owner.addAttribute(ATTR_SPEED, speed);
+		}
+		
+		this.owner.posY += Math.floor(speed * delta * 0.01);
 
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 
@@ -385,6 +476,17 @@ class CarController extends Component {
 				this.steeringTime = 0;
 			}
 		}
+
+		if (!this.immuneMode) {
+			let collided = this.obstacleMap.findCollidedObstacle(this.owner);
+
+			if (collided != null) {
+				// handle collision
+				this.owner.addComponent(new FlickerAnimation(4000));
+				this.immuneMode = true;
+				this.decelerate(5);
+			}
+		}
 	}
 }
 
@@ -395,6 +497,7 @@ class CarTouchController extends CarController {
 	}
 
 	onmessage(msg) {
+		super.onmessage(msg);
 		if (msg.action == MSG_TOUCH) {
 			let posX = msg.data[0];
 			let posY = msg.data[1];
@@ -418,6 +521,11 @@ class GameManager extends Component {
 	}
 
 	update(delta, absolute) {
+		if(this.car === undefined){
+			this.car = this.scene.findAllObjectsByTag("car")[0];
+		}
+		
+		this.model.currentSpeed = this.car.getAttribute(ATTR_SPEED);
 		this.model.currentPosition += Math.floor(this.model.currentSpeed * delta * 0.01);
 	}
 }
