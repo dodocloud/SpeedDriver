@@ -37,15 +37,24 @@ function loadAssets() {
 	}
 	
 	// load json with sprite data
-	promises.push(fetch("js/sprites.json").then((response) => {sprites = response.json;}));
+	promises.push(
+		fetch("js/sprites.json")
+			.then((res) => res.json())
+			.then((json) => { sprites = json;}));
 	
 	return Promise.all(promises);
 }
 
 function initGame() {
-	let model = new GameModel(getAtlas(), this.mdata);
+	let atlas = loadedImages[spriteAssets[0]];
+	
+	let model = new GameModel();
+	let spriteMgr = new SpriteManager(sprites, atlas)
+	
+	scene.addGlobalAttribute(ATTR_GAME_MODEL, model);
+	scene.addGlobalAttribute(ATTR_SPRITE_MGR, spriteMgr);
+	
 	let root = new GameObject("root");
-	root.addAttribute(ATTR_GAME_MODEL, model);
 	root.addComponent(new InputManager());
 	root.addComponent(new GameManager());
 	scene.addGameObject(root);
@@ -55,10 +64,10 @@ function initGame() {
 	scene.addGameObject(road);
 
 	let car = new GameObject("car");
-	car.sprite = new Sprite(getAtlas(), mdata.car.offsetX, mdata.car.offsetY, mdata.car.width, mdata.car.height);
+	car.sprite = spriteMgr.getCar();
 
-	car.posX = mdata.grass_left_1.width + mdata.road.width / 3 * 1;
-	car.posY = canvas.height - 1.5 * mdata.car.height;
+	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width / 3 * 1;
+	car.posY = canvas.height - 1.5 * spriteMgr.getCar().height;
 	car.addComponent(new Renderer());
 	car.addComponent(new CarController());
 
@@ -72,10 +81,6 @@ function initGame() {
 	scene.addGameObject(obstacleMgr);
 	
 	return true;
-}
-
-function getAtlas() {
-	return loadedImages[spriteAssets[0]];
 }
 
 
