@@ -6,6 +6,7 @@ const ATTR_GAME_MODEL = 100;
 const ATTR_SPRITE_MGR = 102;
 const ATTR_LANE = 103;
 const ATTR_SPEED = 104;
+const ATTR_OBSTACLE_MAP = 105;
 
 const MSG_TOUCH = 103;
 
@@ -67,26 +68,83 @@ class SpriteManager {
 		return (this.sprites.road.width - (2 * 10)) / 3;
 	}
 
-	getCenterOfRoad(lineIndex) {
-		if (lineIndex == 0) {
+	getCenterOfRoad(laneIndex) {
+		if (laneIndex == 0) {
 			return this.getCenterOfRoad(1) - this.getRoadLaneWidth();
 		}
 
-		if (lineIndex == 1) {
+		if (laneIndex == 1) {
 			return this.sprites.road.width / 2;
 		}
 
-		if (lineIndex == 2) {
+		if (laneIndex == 2) {
 			return this.getCenterOfRoad(1) + this.getRoadLaneWidth();
 		}
 	}
 
 }
 
+class ObstacleMap {
+	constructor() {
+		this.count = 0;
+		this.obstacles = new Map();
+	}
+
+	addObstacle(gameObject) {
+		this.obstacles.set(gameObject.id, gameObject);
+		this.count++;
+	}
+
+	removeObstacle(gameObject) {
+		this.obstacles.delete (gameObject.id);
+		this.count--;
+	}
+
+	isPlaceFreeForObstacle(topPos, bottomPos, lane) {
+
+		for (let[key, val]of this.obstacles) {
+			if (val.getAttribute(ATTR_LANE) != lane) {
+				continue;
+			}
+
+			let obstacleTopPos = val.posY;
+			let obstacleBottomPos = val.posY - val.sprite.height;
+			let intersection = -Math.max(obstacleBottomPos - 20, bottomPos) + Math.min(obstacleTopPos + 20, topPos);
+
+			if (intersection >= 0) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	getNearestObstacle(gameObject, sameLane = true) {
+		let lane = gameObject.getAttribute(ATTR_LANE);
+		let nearest = null;
+		let nearestDistance = 0;
+
+		for (let[key, val]of this.obstacles) {
+			if (sameLane && val.getAttribute(ATTR_LANE) != lane) {
+				continue;
+			}
+
+			let distance = (val.posY - val.sprite.height) - gameObject.posY;
+			if (distance > 0) {
+				if (nearest == null || distance < nearestDistance) {
+					nearest = val;
+					nearestDistance = distance;
+				}
+			}
+		}
+		return nearest;
+	}
+}
+
 class GameModel {
 	constructor() {
 		this.currentPosition = 0;
-		this.currentSpeed = 10;
+		this.currentSpeed = 30;
 	}
 }
 
@@ -98,8 +156,6 @@ class Obstacle {
 		this.position = position;
 	}
 }
-
-
 
 class RoadComponent extends Component {
 
@@ -145,16 +201,43 @@ class RoadComponent extends Component {
 	}
 }
 
-
 class ObstacleComponent extends Component {
-	
+
 	oninit() {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
+		this.obstacleMap = this.scene.getGlobalAttribute(ATTR_OBSTACLE_MAP);
+		this.currentDeceleration = 0;
 	}
 
 	update(delta, absolute) {
-		this.owner.posY += this.owner.getAttribute(ATTR_SPEED);
+		let currentSpeed = this.owner.getAttribute(ATTR_SPEED);
+		this.owner.posY += currentSpeed * delta * 0.01;
+
+		if (currentSpeed != 0) {
+			let nearest = this.obstacleMap.getNearestObstacle(this.owner, true);
+
+			if (nearest != null) {
+				let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
+
+				let criticalDistance = 200;
+				let desiredDistance = 20;
+
+				if (distance < criticalDistance) {
+
+					// we have to get to the same velocity
+					let desiredSpeed = nearest.getAttribute(ATTR_SPEED);
+
+					if (desiredSpeed < currentSpeed) {
+						// calculate deceleration in order to be on the same speed cca 20 pixels behind the obstacle
+						// a = v^2 / 2s
+						this.currentDeceleration = Math.max(0, (currentSpeed - desiredSpeed) * (currentSpeed - desiredSpeed) / (2 * Math.max(1, distance - desiredDistance)));
+					}
+				}
+			}
+
+			this.owner.addAttribute(ATTR_SPEED, Math.max(0, currentSpeed - this.currentDeceleration * delta * 0.01));
+		}
 		let currentPosition = this.gameModel.currentPosition;
 
 		if ((currentPosition - this.owner.posY) > 1000) {
@@ -169,13 +252,13 @@ class ObstacleManager extends Component {
 	oninit() {
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
+		this.obstacleMap = this.scene.getGlobalAttribute(ATTR_OBSTACLE_MAP);
 		this.subscribe(MSG_OBJECT_REMOVED);
-		this.obstacles = new Map();
 	}
 
 	onmessage(msg) {
 		if (msg.action == MSG_OBJECT_REMOVED) {
-			this.obstacles.delete (msg.gameObject.id);
+			this.obstacleMap.removeObstacle(msg.gameObject);
 		}
 	}
 
@@ -186,6 +269,7 @@ class ObstacleManager extends Component {
 			var rnd = Math.floor(Math.random() * 6);
 			var sprite = null;
 			var lane = Math.floor(Math.random() * 3);
+
 			var speed = 0;
 
 			if (rnd == 0) {
@@ -210,20 +294,24 @@ class ObstacleManager extends Component {
 			if (rnd == 5) {
 				sprite = this.spriteMgr.getObstacle("static", 1);
 			}
+			
 			let posX = this.spriteMgr.getBgrWidth() + this.spriteMgr.getCenterOfRoad(lane) - sprite.width / 2;
 			let posY = this.gameModel.currentPosition + 200;
 
-			let newObj = new GameObject("obstacle");
-			newObj.sprite = sprite;
-			newObj.posX = posX;
-			newObj.posY = posY;
-			newObj.zIndex = 1;
-			newObj.addAttribute(ATTR_LANE, lane);
-			newObj.addAttribute(ATTR_SPEED, speed);
-			newObj.addComponent(new ObstacleComponent());
-			newObj.addComponent(new RoadObjectRenderer());
-			this.scene.addGameObject(newObj);
-			this.obstacles.set(newObj.id, newObj);
+			if (this.obstacleMap.isPlaceFreeForObstacle(posY, posY-sprite.height,lane)) {
+				let newObj = new GameObject("obstacle");
+				newObj.sprite = sprite;
+				newObj.posX = posX;
+				newObj.posY = posY;
+				newObj.zIndex = 1;
+				newObj.addAttribute(ATTR_LANE, lane);
+				newObj.addAttribute(ATTR_SPEED, speed);
+				newObj.addComponent(new ObstacleComponent());
+				newObj.addComponent(new RoadObjectRenderer());
+				this.scene.addGameObject(newObj);
+				this.obstacleMap.addObstacle(newObj);
+			}
+
 		}
 	}
 }
@@ -272,7 +360,7 @@ class CarController extends Component {
 
 	update(delta, absolute) {
 
-		this.owner.posY += this.owner.getAttribute(ATTR_SPEED);
+		this.owner.posY += Math.floor(this.owner.getAttribute(ATTR_SPEED) * delta * 0.01);
 
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 
@@ -330,6 +418,6 @@ class GameManager extends Component {
 	}
 
 	update(delta, absolute) {
-		this.model.currentPosition += this.model.currentSpeed;
+		this.model.currentPosition += Math.floor(this.model.currentSpeed * delta * 0.01);
 	}
 }

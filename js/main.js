@@ -53,6 +53,7 @@ function initGame() {
 	
 	scene.addGlobalAttribute(ATTR_GAME_MODEL, model);
 	scene.addGlobalAttribute(ATTR_SPRITE_MGR, spriteMgr);
+	scene.addGlobalAttribute(ATTR_OBSTACLE_MAP, new ObstacleMap());
 	
 	let root = new GameObject("root");
 	root.addComponent(new InputManager());
