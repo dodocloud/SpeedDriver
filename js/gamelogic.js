@@ -77,6 +77,24 @@ class SpriteManager {
 		return null;
 	}
 	
+	getRoadLaneWidth(){
+		return (this.sprites.road.width - (2 * 10)) / 3;
+	}
+	
+	getCenterOfRoad(lineIndex){
+		if(lineIndex == 0) {
+			return this.getCenterOfRoad(1) - this.getRoadLaneWidth();
+		}
+		
+		if(lineIndex == 1) {
+			return this.sprites.road.width / 2;
+		}
+		
+		if(lineIndex == 2) {
+			return this.getCenterOfRoad(1) + this.getRoadLaneWidth();
+		}
+	}
+	
 }
 
 class GameModel {
@@ -153,13 +171,14 @@ class ObstacleManager extends Component {
 	}
 
 	draw(ctx) {
-		var lane = this.spriteMgr.getBgrWidth();
+		var bgrWidth = this.spriteMgr.getBgrWidth();
 		let currentPosition = this.gameModel.currentPosition;
 		
 		for (var i = 0; i < this.obstacles.length; i++) {
 			var obst = this.obstacles[i];
-			var lanePos = lane + obst.lane * this.spriteMgr.getRoad().width / 3;
 			var sprite = obst.sprite;
+			var lanePos = bgrWidth + this.spriteMgr.getCenterOfRoad(obst.lane) - sprite.width/2;
+			
 
 			ctx.drawImage(this.spriteMgr.atlas, sprite.offsetX, sprite.offsetY,
 				sprite.width, sprite.height, lanePos, currentPosition - obst.position, sprite.width, sprite.height);
@@ -243,8 +262,8 @@ class CarController extends Component {
 
 		if (currentCarState == CAR_STATE_STEERING_LEFT || currentCarState == CAR_STATE_STEERING_RIGHT) {
 			let increment = currentCarState == CAR_STATE_STEERING_LEFT ? -1 : 1;
-			var carLocationX = bgrWidth + road.width / 3 * currentCarLane;
-			var desiredLocationX = bgrWidth + road.width / 3 * (currentCarLane + increment);
+			var carLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane) - this.spriteMgr.getCar().width/2;
+			var desiredLocationX = bgrWidth + this.spriteMgr.getCenterOfRoad(currentCarLane + increment) - this.spriteMgr.getCar().width/2;
 
 			var progress = Math.min(1, (absolute - this.steeringTime) / (500));
 			// change car location

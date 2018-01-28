@@ -10,58 +10,58 @@
 			"type" : "grass",
 			"offsetX" : 2,
 			"offsetY" : 134,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "grass",
 			"offsetX" : 90,
 			"offsetY" : 134,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "pond",
 			"offsetX" : 2,
 			"offsetY" : 294,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "forest",
 			"offsetX" : 90,
 			"offsetY" : 294,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		}
 	],
 	"bgr_right" : [
 		{
 			"type" : "grass",
-			"offsetX" : 178,
+			"offsetX" : 180,
 			"offsetY" : 162,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "grass",
-			"offsetX" : 266,
+			"offsetX" : 268,
 			"offsetY" : 162,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "carpet",
-			"offsetX" : 178,
+			"offsetX" : 180,
 			"offsetY" : 322,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		},
 		{
 			"type" : "forest",
-			"offsetX" : 266,
+			"offsetX" : 268,
 			"offsetY" : 322,
-			"width" : 81,
+			"width" : 80,
 			"height" : 154
 		}
 	],

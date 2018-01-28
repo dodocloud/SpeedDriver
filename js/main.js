@@ -66,7 +66,8 @@ function initGame() {
 	let car = new GameObject("car");
 	car.sprite = spriteMgr.getCar();
 
-	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width / 3 * 1;
+	// place the car into the middle lane
+	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfRoad(1) - car.sprite.width/2;
 	car.posY = canvas.height - 1.5 * spriteMgr.getCar().height;
 	car.addComponent(new Renderer());
 	car.addComponent(new CarController());
