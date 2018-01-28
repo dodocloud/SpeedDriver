@@ -94,268 +94,41 @@ var mdata = {
 	}
 };
 
-class Sprite {
-	constructor(atlas, offsetX, offsetY, width, height) {
+const CAR_STATE_NONE = 0;
+const CAR_STATE_STEERING_LEFT = 1;
+const CAR_STATE_STEERING_RIGHT = 2;
+const ATTR_GAME_MODEL = 100;
+
+class GameModel {
+	constructor(atlas, sprites) {
 		this.atlas = atlas;
-		this.offsetX = offsetX;
-		this.offsetY = offsetY;
-		this.width = width;
-		this.height = height;
+		this.sprites = sprites;
+	}
+
+	getLeftGrass(offset) {
+		if (offset % 200 == 0)
+			return this.sprites.grass_left_4;
+		if (offset % 100 == 0)
+			return this.sprites.grass_left_3;
+
+		if (offset % 3 == 0)
+			return this.sprites.grass_left_2;
+		return this.sprites.grass_left_1;
+	}
+
+	getRightGrass(offset) {
+		if (offset % 200 == 0)
+			return this.sprites.grass_right_4;
+		if (offset % 100 == 0)
+			return this.sprites.grass_right_3;
+
+		if (offset % 3 == 0)
+			return this.sprites.grass_right_2;
+		return this.sprites.grass_right_1;
 	}
 }
-
-const MSG_OBJECT_ADDED = 1;
-const MSG_OBJECT_REMOVED = 2;
 
 let scene = null;
-
-class Scene {
-
-	constructor() {
-		if (scene) {
-			return scene;
-		}
-
-		this.scene = this;
-		// messages keys and all subscribers that listens to specific keys
-		this.subscribers = new Map();
-		// component ids and list of all message keys they listen to
-		this.subscribedMessages = new Map();
-		// collection of all game objects, mapped by their tag and then by their ids
-		this.gameObjectTags = new Map();
-		// collection of all game objects, mapped by their id
-		this.gameObjects = new Map();
-
-		this.objectsToRemove = new Array();
-		this.componentsToRemove = new Array();
-	}
-
-	// adds a new game object into scene
-	addGameObject(obj) {
-		// initialize all components
-		for (let component of obj.components) {
-			component.owner = obj;
-			component.scene = this;
-			component.oninit();
-		}
-
-		if (!this.gameObjectTags.hasTag(obj.tag)) {
-			this.gameObjectTags.set(obj.tag, new Map());
-		}
-
-		// add game object into the collection
-		this.gameObjectTags.get(obj.tag).set(obj.id, obj);
-		this.gameObjects.set(obj.id, obj);
-
-		this._sendmsg(new Msg(MSG_OBJECT_ADDED, null, obj));
-	}
-
-	removeGameObject(obj) {
-		// will be removed at the end of the update loop
-		this.objectsToRemove.push(obj);
-	}
-
-	findAllObjectsByTag(tag) {
-		let result = new Array();
-		if (this.gameObjectTags.has(tag)) {
-			for (let gameObject of this.gameObjectTags.get(tag)) {
-				result.push(gameObject);
-			}
-		}
-		return result;
-	}
-
-	// sends message to all subscribers
-	_sendmsg(msg) {
-		if (this.subscribers.has(msg.messageKey)) {
-			// get all subscribed components
-			let subscribedComponents = this.subscribers.get(msg.messageKey);
-			for (let component of subscribedComponents) {
-				// send message
-				component.onmessage(msg);
-			}
-		}
-	}
-
-	// subscribes given component for messaging system
-	_subscribeComponent(msgKey, component) {
-		var subs = this.subscribers.get(msgKey);
-		if (subs === undefined) {
-			subs = new Map();
-			this.subscribers.set(msgKey, subs);
-		}
-
-		subs.set(component.id, component);
-
-		// save into the second collection as well
-		if (!this.subscribedMessages.has(component.id)) {
-			this.subscribedMessages.set(component.id, new Array());
-		}
-
-		this.subscribedMessages.get(component.id).push(msgKey);
-	}
-
-	_removeGameObjectImmediately(obj) {
-		for (let component of obj.components) {
-			this._removeComponentImmediately(component);
-		}
-
-		this.gameObjectTags.get(obj.tag).delete (obj.id);
-		this.gameObjects.delete (obj.id);
-		this._sendmsg(new Msg(MSG_OBJECT_REMOVED, null, obj));
-	}
-
-	// removes all game objects;
-	_removePendingGameObjects() {
-		for (let obj of this.objectsToRemove) {
-			this._removeGameObjectImmediately(obj);
-		}
-
-		this.objectsToRemove = [];
-	}
-
-	_removeComponent(component) {
-		this.componentsToRemove.push(obj);
-	}
-
-	_removeComponentImmediately(component) {
-		let allMsgKeys = this.subscribedMessages.get(component.id);
-		this.subscribedMessages.delete (component.id);
-
-		for (let msgKey of allMsgKeys) {
-			this.subscribers.get(msgKey).delete (component.id);
-		}
-	}
-
-	_removePendingComponents() {
-		for (let component of this.componentsToRemove) {
-			this._removeComponentImmediately(component);
-		}
-		this.componentsToRemove = [];
-
-	}
-
-	_update(delta, absolute) {
-		for (gameObject of this.gameObjects) {
-			gameObject._update(delta, absolute);
-		}
-
-		this._removePendingComponents();
-		this._removePendingGameObjects();
-	}
-
-	_draw(ctx) {
-		for (gameObject of this.gameObjects) {
-			gameObject._draw(ctx);
-		}
-	}
-}
-
-scene = new Scene();
-
-class GameObject {
-
-	constructor(tag) {
-		this.id = GameObject.idCounter++;
-		this.tag = tag;
-		this.components = new Array();
-		this.posX = 0;
-		this.posY = 0;
-		this.sprite = null;
-		this.attributes = new Map();
-	}
-
-	addComponent(component) {
-		this.components.push(component);
-		scene._addGameObject(this);
-	}
-
-	removeComponent(component) {
-		for (var i = 0; i < components.length; i++) {
-			if (components[i] == component) {
-				this.components.splice(i, 1);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	addAttribute(key, val) {
-		this.attributes.set(key, val);
-	}
-
-	getAttribute(key) {
-		return this.attributes.get(key);
-	}
-
-	removeAttribute(key) {
-		this.attributes.delete (key);
-	}
-
-	_update(delta, absolute) {
-		for (component of this.components) {
-			component.update(delta, absolute);
-		}
-	}
-
-	_draw(ctx) {
-		for (component of this.components) {
-			component.draw(ctx)
-		}
-	}
-}
-GameObject.idCounter = 0;
-
-class Msg {
-	constructor(messageKey, component, gameObject, data) {
-		this.messageKey = messageId;
-		this.component = component;
-		this.gameObject = gameObject;
-		this.data = data;
-	}
-}
-
-class Component {
-
-	constructor() {
-		this.id = Component.idCounter++;
-		this.owner = null;
-		this.scene = null;
-	}
-
-	_subscribe(messageKey) {
-		this.scene._subscribe(messageKey, this);
-	}
-
-	_sendmsg(messageKey, data) {
-		this.scene._sendmsg(new Msg(messageKey, this, this.owner, data));
-	}
-
-	oninit() {
-		// will be overridden
-	}
-
-	onmessage(msg) {
-		// will be overridden
-	}
-
-	update(delta, absolute) {
-		// will be overridden
-	}
-
-	draw(ctx) {}
-}
-
-Component.idCounter = 0;
-
-class Renderer extends Component {
-	draw(ctx) {
-		if (owner.sprite != null) {
-			ctx.drawImage(owner.sprite.atlas, owner.sprite.offsetX, owner.sprite.offsetY,
-				owner.sprite.width, owner.sprite.height, owner.posX, owner.posY, owner.sprite.width, owner.sprite.height);
-		}
-	}
-}
 
 var imagesToLoad = ["speeddriver.png"];
 var loadedImages = [];
@@ -376,39 +149,7 @@ function getAtlas() {
 	return loadedImages[imagesToLoad[0]];
 }
 
-var forestMode = false;
 
-function getLeftGrass(offset) {
-	if (offset % 200 == 0)
-		return mdata.grass_left_4;
-	if (offset % 100 == 0)
-		return mdata.grass_left_3;
-
-	if (offset % 3 == 0)
-		return mdata.grass_left_2;
-	return mdata.grass_left_1;
-}
-
-function getRightGrass(offset) {
-	if (offset % 200 == 0)
-		return mdata.grass_right_4;
-	if (offset % 100 == 0)
-		return mdata.grass_right_3;
-
-	if (offset % 3 == 0)
-		return mdata.grass_right_2;
-	return mdata.grass_right_1;
-}
-
-// ===========================================================================
-// GraphicsCommon
-function drawBitmapCenteredWithRotation(useBitmap, atX, atY, withAng) {
-	canvasContext.save();
-	canvasContext.translate(atX, atY);
-	canvasContext.rotate(withAng);
-	canvasContext.drawImage(useBitmap, -useBitmap.width / 2, -useBitmap.height / 2);
-	canvasContext.restore();
-}
 
 // ===========================================================================
 // Main
@@ -421,13 +162,11 @@ var gameTime = 0;
 window.onload = function () {
 
 	canvas = document.getElementById('gameCanvas');
+	let context = new Context(canvas);
+	scene = new Scene(context);
+
 	cw = canvas.width,
 	ch = canvas.height,
-
-	canvas.addEventListener("touchstart", handleStart, false);
-	canvas.addEventListener("touchend", handleEnd, false);
-	canvas.addEventListener("mousedown", handleStart, false);
-	canvas.addEventListener("mouseup", handleEnd, false);
 
 	currentCarLocationX = mdata.grass_left_1.width + mdata.road.width / 3 * 1;
 
@@ -436,40 +175,53 @@ window.onload = function () {
 	currentTime = (new Date()).getTime();
 	gameTime = (new Date()).getTime() - currentTime;
 
-	loadImages().then(gameLoop);
+	loadImages().then(initGame).then(gameLoop);
 }
 
-var lastTouch = null;
+class InputManager extends Component {
 
-function handleStart(evt) {
-	evt.preventDefault();
-	if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
-		// only single-touch
-		lastTouch = evt.changedTouches[0];
-	} else {
-		lastTouch = evt;
-	}
-}
+	oninit() {
+		this.lastTouch = null;
 
-function handleEnd(evt) {
-	evt.preventDefault();
-	var posX,
-	posY;
-
-	if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
-		posX = evt.changedTouches[0].pageX;
-		posY = evt.changedTouches[1].pageY;
-
-	} else {
-		// mouse
-		posX = evt.pageX;
-		posY = evt.pageY;
+		let context = this.scene.context;
+		let canvas = context.canvas;
+		canvas.addEventListener("touchstart", this.handleStart, false);
+		canvas.addEventListener("touchend", this.handleEnd, false);
+		canvas.addEventListener("mousedown", this.handleStart, false);
+		canvas.addEventListener("mouseup", this.handleEnd, false);
 	}
 
-	if (Math.abs(lastTouch.pageX - posX) < 10 &&
-		Math.abs(lastTouch.pageY - posY) < 10) {
-		handleTouch(posX, posY);
+	handleStart(evt) {
+		evt.preventDefault();
+		if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
+			// only single-touch
+			this.lastTouch = evt.changedTouches[0];
+		} else {
+			this.lastTouch = evt;
+		}
 	}
+
+	handleEnd(evt) {
+		evt.preventDefault();
+		var posX,
+		posY;
+
+		if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
+			posX = evt.changedTouches[0].pageX;
+			posY = evt.changedTouches[1].pageY;
+
+		} else {
+			// mouse
+			posX = evt.pageX;
+			posY = evt.pageY;
+		}
+
+		if (Math.abs(this.lastTouch.pageX - posX) < 10 &&
+			Math.abs(this.lastTouch.pageY - posY) < 10) {
+			handleTouch(posX, posY);
+		}
+	}
+
 }
 
 function handleTouch(posX, posY) {
@@ -485,37 +237,45 @@ function handleTouch(posX, posY) {
 var currentPosition = 0;
 var currentSpeed = 10;
 
-function drawRoad() {
-	var posX = mdata.grass_left_1.width;
-	var spriteHeight = mdata.road.height;
-	var canvasHeight = ch;
-	var mults = Math.round(canvasHeight / spriteHeight) + 1;
-	var currentBlock = Math.floor(currentPosition / spriteHeight) + mults;
+class RoadComponent extends Component {
 
-	var position = Math.min(spriteHeight, spriteHeight - currentPosition % spriteHeight);
-	var posY = 0;
-	for (var i = 0; i < mults; i++) {
-		var sprite = mdata.road;
-		if (sprite.height - position <= 0) {
+	oninit(canvas) {
+		let root = this.scene.findAllObjectsByTag("root")[0];
+		this.gameModel = root.getAttribute(ATTR_GAME_MODEL);
+	}
+
+	draw(ctx) {
+		var posX = this.gameModel.sprites.grass_left_1.width;
+		var spriteHeight = this.gameModel.sprites.road.height;
+		var canvasHeight = ch;
+		var mults = Math.round(canvasHeight / spriteHeight) + 1;
+		var currentBlock = Math.floor(currentPosition / spriteHeight) + mults;
+
+		var position = Math.min(spriteHeight, spriteHeight - currentPosition % spriteHeight);
+		var posY = 0;
+		for (var i = 0; i < mults; i++) {
+			var sprite = this.gameModel.sprites.road;
+			if (sprite.height - position <= 0) {
+				position = 0;
+				continue;
+			}
+			// draw road
+			ctx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY + position,
+				sprite.width, sprite.height - position, posX, posY, sprite.width, sprite.height - position);
+
+			// draw left grass
+			var leftGrass = this.gameModel.getLeftGrass(currentBlock - i);
+			ctx.drawImage(getAtlas(), leftGrass.offsetX, leftGrass.offsetY + position,
+				leftGrass.width, leftGrass.height - position, 0, posY, leftGrass.width, leftGrass.height - position);
+
+			// draw right grass
+			var rightGrass = this.gameModel.getRightGrass(currentBlock - i);
+			ctx.drawImage(getAtlas(), rightGrass.offsetX, rightGrass.offsetY + position,
+				rightGrass.width, rightGrass.height - position, posX + mdata.road.width, posY, rightGrass.width, rightGrass.height - position);
+
+			posY += (sprite.height - position);
 			position = 0;
-			continue;
 		}
-		// draw road
-		cx.drawImage(getAtlas(), sprite.offsetX, sprite.offsetY + position,
-			sprite.width, sprite.height - position, posX, posY, sprite.width, sprite.height - position);
-
-		// draw left grass
-		var leftGrass = getLeftGrass(currentBlock - i);
-		cx.drawImage(getAtlas(), leftGrass.offsetX, leftGrass.offsetY + position,
-			leftGrass.width, leftGrass.height - position, 0, posY, leftGrass.width, leftGrass.height - position);
-
-		// draw right grass
-		var rightGrass = getRightGrass(currentBlock - i);
-		cx.drawImage(getAtlas(), rightGrass.offsetX, rightGrass.offsetY + position,
-			rightGrass.width, rightGrass.height - position, posX + mdata.road.width, posY, rightGrass.width, rightGrass.height - position);
-
-		posY += (sprite.height - position);
-		position = 0;
 	}
 }
 
@@ -590,9 +350,6 @@ function createObstacle() {
 	}
 }
 
-var CAR_STATE_NONE = 0;
-var CAR_STATE_STEERING_LEFT = 1;
-var CAR_STATE_STEERING_RIGHT = 2;
 var currentCarState = CAR_STATE_NONE;
 var currentCarLane = 1;
 var currentCarLocationX = 0;
@@ -642,6 +399,19 @@ function steerCar(absolute) {
 	}
 }
 
+function initGame() {
+	let model = new GameModel(getAtlas(), this.mdata);
+	let root = new GameObject("root");
+	root.addAttribute(ATTR_GAME_MODEL, model);
+	root.addComponent(new InputManager());
+	scene.addGameObject(root);
+
+	let road = new GameObject("road");
+	road.addComponent(new RoadComponent());
+	scene.addGameObject(road);
+
+	return true;
+}
 function gameLoop() {
 	window.requestAnimationFrame(gameLoop);
 
@@ -656,12 +426,11 @@ function gameLoop() {
 		lastTime = currentTime - (delta % interval);
 	}
 
-	scene._draw(cx);
 }
 
 function update(delta, absolute) {
 	currentPosition += currentSpeed;
-	drawRoad();
+	scene._draw(cx);
 	drawCar();
 	drawObstacles();
 	createObstacle();
