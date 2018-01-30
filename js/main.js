@@ -1,7 +1,6 @@
 var fps = 30; 							// frames per second
 var lastTime = (new Date()).getTime(); 	// last update time
 var gameTime = 0;						// number of ms since the game started
-var sprites = null;						// sprites.json
 
 var spriteAssets = ["speeddriver.png"];	// path to all assets
 var loadedImages = [];
@@ -37,13 +36,7 @@ function loadAssets() {
 				loadedImages[spriteAsset] = prom;
 			}));
 	}
-	
-	// load json with sprite data
-	promises.push(
-		fetch("js/sprites.json")
-			.then((res) => res.json())
-			.then((json) => { sprites = json;}));
-	
+
 	return Promise.all(promises);
 }
 
@@ -51,7 +44,7 @@ function initGame() {
 	let atlas = loadedImages[spriteAssets[0]];
 	
 	let model = new GameModel();
-	let spriteMgr = new SpriteManager(sprites, atlas)
+	let spriteMgr = new SpriteManager(sprites_data, atlas)
 	
 	scene.addGlobalAttribute(ATTR_GAME_MODEL, model);
 	scene.addGlobalAttribute(ATTR_SPRITE_MGR, spriteMgr);

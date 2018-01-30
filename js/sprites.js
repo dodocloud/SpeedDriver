@@ -1,4 +1,6 @@
-{
+
+// Chrome doesn't support fetching JSON files from disc by default :-(
+var sprites_data = {
 	"road": {
 		"offsetX": 262,
 		"offsetY": 2,
@@ -146,4 +148,4 @@
 		"width" : 37,
 		"height" : 47
 	}
-}
+};
