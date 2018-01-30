@@ -69,9 +69,9 @@ var sprites_data = {
 	],
 	"car": {
 		"offsetX": 352,
-		"offsetY": 160,
+		"offsetY": 162,
 		"width": 41,
-		"height": 67
+		"height": 66
 	},
 	"car_destroyed": {
 		"offsetX": 396,
@@ -83,16 +83,16 @@ var sprites_data = {
 		{
 			"type" : "car",
 			"offsetX": 44,
-			"offsetY": 452,
+			"offsetY": 453,
 			"width": 35,
-			"height": 48
+			"height": 47
 		},
 		{
 			"type" : "car",
 			"offsetX": 440,
-			"offsetY": 176,
+			"offsetY": 177,
 			"width": 41,
-			"height": 61
+			"height": 60
 		},
 		{
 			"type" : "truck",
@@ -104,9 +104,9 @@ var sprites_data = {
 		{
 			"type" : "car",
 			"offsetX": 352,
-			"offsetY": 228,
+			"offsetY": 229,
 			"width": 32,
-			"height": 47
+			"height": 46
 		},
 		{
 			"type" : "truck",

@@ -1,3 +1,15 @@
+class GameModel {
+	constructor() {
+		this.cameraPosition = 0;
+		this.cameraSpeed = 0;
+		this.lives = DEFAULT_LIVES;
+		this.score = 0;
+		this.immuneMode = false;
+		this.currentMaxSpeed = DEFAULT_MAX_SPEED;
+		this.trafficFrequency = DEFAULT_TRAFFIC_FREQUENCY;
+	}
+}
+
 
 class SpriteManager {
 	constructor(sprites, atlas) {
@@ -157,17 +169,5 @@ class ObstacleMap {
 		}
 
 		return fullLanesNum < 2;
-	}
-}
-
-class GameModel {
-	constructor() {
-		this.cameraPosition = 0;
-		this.cameraSpeed = 0;
-		this.lives = 3;
-		this.score = 0;
-		this.immuneMode = false;
-		this.currentMaxSpeed = MAXIMUM_SPEED / 2;
-		this.trafficFrequency = 30;
 	}
 }

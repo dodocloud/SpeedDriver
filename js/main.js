@@ -1,4 +1,12 @@
-var fps = 30; 							// frames per second
+const MAXIMUM_SPEED = 50;
+const MAXIMUM_FREQUENCY = 50;
+
+const DEFAULT_LIVES = 3;
+const DEFAULT_MAX_SPEED = MAXIMUM_SPEED / 10;
+const DEFAULT_TRAFFIC_FREQUENCY = 10;
+
+
+var fps = 60; 							// frames per second
 var lastTime = (new Date()).getTime(); 	// last update time
 var gameTime = 0;						// number of ms since the game started
 
@@ -107,20 +115,16 @@ function initGame() {
 
 
 function gameLoop() {
-	window.requestAnimationFrame(gameLoop);
-
 	var currentTime = (new Date()).getTime();
 	let interval = 1000/fps;
-	// delta shouldn't exceed double of period
-	var delta = Math.min(interval*2, (currentTime - lastTime));
-	
+	var delta = currentTime - lastTime;
 	gameTime += delta;
 
-	if (delta > interval) {
-		// clear canvas and call update and render function upon the scene
-		canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-		scene.update(delta, gameTime);
-		scene.draw(canvasCtx);
-		lastTime = currentTime - (delta % interval);
-	}
+	// clear canvas and call update and render function upon the scene
+	canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+	scene.update(delta, gameTime);
+	scene.draw(canvasCtx);
+	lastTime = currentTime - (delta % interval);
+	
+	window.requestAnimationFrame(gameLoop);
 }

@@ -18,8 +18,6 @@ const MSG_CAR_COLLIDED = 105;
 const MSG_GAME_OVER = 106;
 const MSG_IMMUNE_MODE_STARTED = 107;
 const MSG_IMMUNE_MODE_ENDED = 108;
-const MAXIMUM_SPEED = 50;
-const MAXIMUM_FREQUENCY = 50;
 
 let scene = null;
 
@@ -154,7 +152,7 @@ class RoadComponent extends Component {
 	}
 
 	draw(ctx) {
-		let cameraPosition = this.gameModel.cameraPosition;
+		let cameraPosition = Math.floor(this.gameModel.cameraPosition);
 
 		var posX = this.spriteMgr.getBgrWidth();
 		var spriteHeight = this.spriteMgr.getRoad().height;
@@ -225,7 +223,7 @@ class MovingObstacleComponent extends Component {
 					// calculate deceleration in order to be on the same speed cca 20 pixels behind the obstacle
 					// a = v^2 / 2s
 					this.currentAcceleration = -1 * Math.max(0, (currentSpeed - desiredSpeed)
-							 * (currentSpeed - desiredSpeed) / (2 * Math.max(10, distance - desiredDistance)));
+							 * (currentSpeed - desiredSpeed) / (2 * Math.max(1, distance - desiredDistance)));
 				}
 			} else if (currentSpeed < this.currentMaxSpeed){
 				this.currentAcceleration = 0.3;
@@ -467,7 +465,7 @@ class CarController extends Component {
 		}
 
 		// increment position
-		this.owner.posY += Math.floor(speed * delta * 0.01);
+		this.owner.posY += (speed * delta * 0.01);
 
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 
@@ -525,6 +523,7 @@ class GameManager extends Component {
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.owner.addComponent(new AnimTextDisplayComponent("Prepare", 5000));
 		this.car = this.scene.findAllObjectsByTag("car")[0];
+		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.subscribe(MSG_CAR_COLLIDED);
 	}
 
@@ -535,6 +534,7 @@ class GameManager extends Component {
 
 				let gameOverComp = new AnimTextDisplayComponent("Game Over", 5000);
 				this.owner.addComponent(gameOverComp);
+				this.car.sprite = this.spriteMgr.getCarDestroyed();
 				this.sendmsg(MSG_GAME_OVER);
 				this.postponedAnimationId = gameOverComp.id;
 				this.scene.addPendingInvocation(4000, () => {
@@ -559,7 +559,7 @@ class GameManager extends Component {
 		// by default, speed of the camera will be the same as the speed of the car
 		// however, we can animate the camera independently. That's why there are two attributes
 		this.gameModel.cameraSpeed = this.car.getAttribute(ATTR_SPEED);
-		this.gameModel.cameraPosition += Math.floor(this.gameModel.cameraSpeed * delta * 0.01);
+		this.gameModel.cameraPosition += (this.gameModel.cameraSpeed * delta * 0.01);
 	}
 }
 
