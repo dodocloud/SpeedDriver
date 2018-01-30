@@ -2,8 +2,8 @@ const MAXIMUM_SPEED = 50;
 const MAXIMUM_FREQUENCY = 50;
 
 const DEFAULT_LIVES = 3;
-const DEFAULT_MAX_SPEED = MAXIMUM_SPEED / 10;
-const DEFAULT_TRAFFIC_FREQUENCY = 10;
+const DEFAULT_MAX_SPEED = MAXIMUM_SPEED / 6;
+const DEFAULT_TRAFFIC_FREQUENCY = 1;
 
 
 var fps = 60; 							// frames per second

@@ -85,34 +85,47 @@ class ObstacleMap {
 	constructor() {
 		this.count = 0;
 		this.obstacles = new Map();
-		this.laneCounter = new Map();
+		this.forbiddenLane1 =  Math.floor(Math.random() * LANES_NUM);
+		this.forbiddenLane2 = this.forbiddenLane1;
+		this.lastForbiddenSwitchTime1 = 0;
+		this.lastForbiddenSwitchTime2 = 0;
 	}
 
 	getObstacles() {
 		return this.obstacles;
 	}
 
-	addObstacle(gameObject) {
+	addObstacle(gameObject, gameTime) {
 		this.obstacles.set(gameObject.id, gameObject);
 		let lane = gameObject.getAttribute(ATTR_LANE);
-		if (this.laneCounter.has(lane)) {
-			this.laneCounter.set(lane, this.laneCounter.get(lane) + 1);
-		} else {
-			this.laneCounter.set(lane, 1);
-		}
 
+		if(gameTime - this.lastForbiddenSwitchTime1 >= 10000) {
+			this.forbiddenLane2 = this.forbiddenLane1;
+			this.forbiddenLane1 = Math.floor(Math.random() * LANES_NUM);
+			this.lastForbiddenSwitchTime2 = gameTime;
+			this.lastForbiddenSwitchTime1 = gameTime;
+			
+		}
+		
+		if(gameTime - this.lastForbiddenSwitchTime2 >= 5000 && this.forbiddenLane2 != this.forbiddenLane1) {
+			this.forbiddenLane2 = this.forbiddenLane1;
+			this.lastForbiddenSwitchTime2 = gameTime;
+			this.lastForbiddenSwitchTime1 = gameTime;
+		}
+		
 		this.count++;
 	}
 
 	removeObstacle(gameObject) {
-		let lane = gameObject.getAttribute(ATTR_LANE);
-		this.laneCounter.set(lane, this.laneCounter.get(lane) - 1);
 		this.obstacles.delete (gameObject.id);
 		this.count--;
 	}
 
 	isPlaceFreeForObstacle(topPos, bottomPos, lane, tolerance = 20) {
-
+		if(lane == this.forbiddenLane1 || lane == this.forbiddenLane2){
+			return false;
+		}
+		
 		for (let[key, val]of this.obstacles) {
 			if (val.getAttribute(ATTR_LANE) != lane) {
 				continue;
@@ -161,13 +174,6 @@ class ObstacleMap {
 	}
 
 	isLaneSafeForNewObstacle(lane) {
-		let fullLanesNum = 0;
-		for (let[key, val]of this.laneCounter) {
-			if (key != lane && val > 0) {
-				fullLanesNum++;
-			}
-		}
-
-		return fullLanesNum < 2;
+		return (lane != this.forbiddenLane1 && lane != this.forbiddenLane2);
 	}
 }

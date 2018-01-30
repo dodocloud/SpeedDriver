@@ -2,22 +2,7 @@
  * Overall game logic
  *
  */
-
-const STEERING_NONE = 0;
-const STEERING_LEFT = 1;
-const STEERING_RIGHT = 2;
-const ATTR_GAME_MODEL = 100;
-const ATTR_SPRITE_MGR = 102;
-const ATTR_LANE = 103;
-const ATTR_SPEED = 104;
-const ATTR_OBSTACLE_MAP = 105;
-
-const MSG_TOUCH = 103;
-const MSG_ANIM_ENDED = 104;
-const MSG_CAR_COLLIDED = 105;
-const MSG_GAME_OVER = 106;
-const MSG_IMMUNE_MODE_STARTED = 107;
-const MSG_IMMUNE_MODE_ENDED = 108;
+ 
 
 let scene = null;
 
@@ -207,8 +192,8 @@ class MovingObstacleComponent extends Component {
 		if (nearest != null) {
 			let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
 
-			let criticalDistance = 200; // if closer than 200 units, decelerate!
-			let desiredDistance = 20; // stop 20 units in front of the obstacle
+			let criticalDistance = this.currentMaxSpeed*3; // if closer than 200 units, decelerate!
+			let desiredDistance = this.currentMaxSpeed; // stop 20 units in front of the obstacle
 
 			if (distance < criticalDistance) {
 
@@ -230,8 +215,6 @@ class MovingObstacleComponent extends Component {
 			} else{
 				this.currentAcceleration = 0;
 			}
-		}else{
-			this.currentAcceleration = 0;
 		}
 
 		// fix velocity based on the current acceleration value
@@ -275,10 +258,10 @@ class ObstacleManager extends Component {
 
 		let currentFrequency = this.gameModel.trafficFrequency / MAXIMUM_FREQUENCY;
 
-		if (!this.gameModel.immuneMode && (noise.simplex2(1, this.gameModel.cameraPosition) + 0.5) > (1 - currentFrequency)) {
+		if (!this.gameModel.immuneMode && (noise.simplex2(1, this.gameModel.cameraPosition) + 1) / 2 > (1 - currentFrequency)) {
 			var obstacleIndex = Math.floor(Math.random() * 7);
 			var sprite = null;
-			var lane = Math.floor(Math.random() * 3);
+			var lane = Math.floor(Math.random() * LANES_NUM);
 
 			if (this.obstacleMap.isLaneSafeForNewObstacle(lane)) {
 				var speed = 0;
@@ -330,7 +313,7 @@ class ObstacleManager extends Component {
 					}
 					newObj.addComponent(new RoadObjectRenderer());
 					this.scene.addGameObject(newObj);
-					this.obstacleMap.addObstacle(newObj);
+					this.obstacleMap.addObstacle(newObj, absolute);
 				}
 			}
 		}
@@ -554,7 +537,7 @@ class GameManager extends Component {
 	}
 
 	update(delta, absolute) {
-		this.gameModel.trafficFrequency = Math.min(MAXIMUM_FREQUENCY, this.gameModel.trafficFrequency * delta * 0.001);
+		this.gameModel.trafficFrequency = Math.min(MAXIMUM_FREQUENCY, this.gameModel.trafficFrequency + delta * 0.0001);
 		this.gameModel.score += this.car.getAttribute(ATTR_SPEED) * delta * 0.001;
 		// by default, speed of the camera will be the same as the speed of the car
 		// however, we can animate the camera independently. That's why there are two attributes
