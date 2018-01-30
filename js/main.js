@@ -74,13 +74,13 @@ function initGame() {
 	car.posY = model.cameraPosition -canvas.height + 1.5 * spriteMgr.getCar().height;
 	car.addComponent(new CarTouchController());
 	car.addComponent(new RoadObjectRenderer());
+	car.addComponent(new CarCollisionChecker());
 	car.zIndex = 5;
 	
 	car.addAttribute(ATTR_LANE, 1);
 
 	scene.addGameObject(car);
 
-	root.addComponent(new CameraComponent());
 	root.addComponent(new ScoreDisplayComponent());
 	
 	let obstacleMgr = new GameObject("obstacle_manager");
