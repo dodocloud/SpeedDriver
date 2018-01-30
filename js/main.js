@@ -11,7 +11,7 @@ const MAXIMUM_FREQUENCY = 50;	// maximum frequency
 const DEFAULT_LIVES = 3;	// default number of lives
 const DEFAULT_MAX_SPEED = MAXIMUM_SPEED / 6;	// initial maximum speed the player's car can achieve
 const DEFAULT_TRAFFIC_FREQUENCY = 1;	// initial traffic frequency
-
+const STEERING_DURATION = 400;			// number of ms the steering of player's car should take
 
 var fps = 60; 							// frames per second
 var lastTime = (new Date()).getTime(); 	// last update time
@@ -122,7 +122,7 @@ function initGame() {
 	
 	// manager that orchestrates global events
 	let gameMgr = new GameObject("gameManager");
-	gameMgr.addComponent(new GameManager());
+	gameMgr.addComponent(new GameComponent());
 	// the manager also renders messages such as Game Over and Get Ready
 	gameMgr.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
 	gameMgr.posY = canvas.height/2;
