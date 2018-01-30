@@ -108,9 +108,9 @@ class ObstacleMap {
 		this.obstacles.set(gameObject.id, gameObject);
 		let lane = gameObject.getAttribute(ATTR_LANE);
 		if (this.laneCounter.has(lane)) {
-			this.laneCounter[lane]++;
+			this.laneCounter.set(lane, this.laneCounter.get(lane) + 1);
 		} else {
-			this.laneCounter[lane] = 1;
+			this.laneCounter.set(lane, 1);
 		}
 
 		this.count++;
@@ -191,8 +191,8 @@ class GameModel {
 		this.lives = 3;
 		this.score = 0;
 		this.immuneMode = false;
-		this.currentMaxSpeed = MAXIMUM_SPEED / 10;
-		this.trafficFrequency = 10;
+		this.currentMaxSpeed = MAXIMUM_SPEED / 2;
+		this.trafficFrequency = 30;
 	}
 }
 
@@ -368,39 +368,49 @@ class MovingObstacleComponent extends Component {
 		this.spriteMgr = this.scene.getGlobalAttribute(ATTR_SPRITE_MGR);
 		this.gameModel = this.scene.getGlobalAttribute(ATTR_GAME_MODEL);
 		this.obstacleMap = this.scene.getGlobalAttribute(ATTR_OBSTACLE_MAP);
-		this.currentDeceleration = 0;
+		this.currentAcceleration = 0;
+		this.currentMaxSpeed = this.owner.getAttribute(ATTR_SPEED);
 	}
 
 	update(delta, absolute) {
 		let currentSpeed = this.owner.getAttribute(ATTR_SPEED);
 		this.owner.posY += currentSpeed * delta * 0.01;
 
-		if (currentSpeed != 0) {
-			let nearest = this.obstacleMap.getNearestObstacle(this.owner, true);
+		let nearest = this.obstacleMap.getNearestObstacle(this.owner, true);
 
-			if (nearest != null) {
-				let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
+		if (nearest != null) {
+			let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
 
-				let criticalDistance = 200; // if closer than 200 units, decelerate!
-				let desiredDistance = 20; // stop 20 units in front of the obstacle
+			let criticalDistance = 200; // if closer than 200 units, decelerate!
+			let desiredDistance = 20; // stop 20 units in front of the obstacle
 
-				if (distance < criticalDistance) {
+			if (distance < criticalDistance) {
 
-					// we have to get to the same velocity
-					let desiredSpeed = nearest.getAttribute(ATTR_SPEED);
+				// we have to get to the same velocity
+				let desiredSpeed = nearest.getAttribute(ATTR_SPEED);
 
-					if (desiredSpeed < currentSpeed) {
-						// calculate deceleration in order to be on the same speed cca 20 pixels behind the obstacle
-						// a = v^2 / 2s
-						this.currentDeceleration = Math.max(0, (currentSpeed - desiredSpeed)
-								 * (currentSpeed - desiredSpeed) / (2 * Math.max(1, distance - desiredDistance)));
-					}
+				if (distance < desiredDistance) {
+					desiredSpeed /= 1.3;
 				}
-			}
 
-			// fix velocity based on the current acceleration value
-			this.owner.addAttribute(ATTR_SPEED, Math.max(0, currentSpeed - this.currentDeceleration * delta * 0.01));
+				if (desiredSpeed < currentSpeed) {
+					// calculate deceleration in order to be on the same speed cca 20 pixels behind the obstacle
+					// a = v^2 / 2s
+					this.currentAcceleration = -1 * Math.max(0, (currentSpeed - desiredSpeed)
+							 * (currentSpeed - desiredSpeed) / (2 * Math.max(10, distance - desiredDistance)));
+				}
+			} else if (currentSpeed < this.currentMaxSpeed){
+				this.currentAcceleration = 0.3;
+			} else{
+				this.currentAcceleration = 0;
+			}
+		}else{
+			this.currentAcceleration = 0;
 		}
+
+		// fix velocity based on the current acceleration value
+		this.owner.addAttribute(ATTR_SPEED, Math.max(0, currentSpeed + this.currentAcceleration * delta * 0.01));
+
 	}
 }
 
@@ -418,6 +428,11 @@ class ObstacleManager extends Component {
 			this.obstacleMap.removeObstacle(msg.gameObject);
 		}
 	}
+	
+	_randomIntFromInterval(min,max)
+	{
+		return Math.floor(Math.random()*(max-min+1)+min);
+	}
 
 	update(delta, absolute) {
 
@@ -434,7 +449,7 @@ class ObstacleManager extends Component {
 
 		let currentFrequency = this.gameModel.trafficFrequency / MAXIMUM_FREQUENCY;
 
-		if (!this.gameModel.immuneMode && (noise.simplex2(1, this.gameModel.cameraPosition)+0.5) > (1 - currentFrequency)) {
+		if (!this.gameModel.immuneMode && (noise.simplex2(1, this.gameModel.cameraPosition) + 0.5) > (1 - currentFrequency)) {
 			var obstacleIndex = Math.floor(Math.random() * 7);
 			var sprite = null;
 			var lane = Math.floor(Math.random() * 3);
@@ -446,23 +461,23 @@ class ObstacleManager extends Component {
 
 				if (obstacleIndex == 0) {
 					sprite = this.spriteMgr.getObstacle("car", 0);
-					speed = currentMaxSpeed / 4 + Math.random() * currentMaxSpeed * 3.5;
+					speed = _randomIntFromInterval(currentMaxSpeed * 0.50, currentMaxSpeed * 0.90);
 				}
 				if (obstacleIndex == 1) {
 					sprite = this.spriteMgr.getObstacle("car", 1);
-					speed = currentMaxSpeed / 4 + Math.random() * currentMaxSpeed * 3.5;
+					speed = _randomIntFromInterval(currentMaxSpeed * 0.50, currentMaxSpeed * 0.85);
 				}
 				if (obstacleIndex == 2) {
 					sprite = this.spriteMgr.getObstacle("car", 2);
-					speed = currentMaxSpeed / 4 + Math.random() * currentMaxSpeed * 3.5;
+					speed = _randomIntFromInterval(currentMaxSpeed * 0.50, currentMaxSpeed * 0.75);
 				}
 				if (obstacleIndex == 3) {
 					sprite = this.spriteMgr.getObstacle("truck", 0);
-					speed = currentMaxSpeed / 4 + Math.random() * currentMaxSpeed * 3;
+					speed = _randomIntFromInterval(currentMaxSpeed * 0.50, currentMaxSpeed * 0.60);
 				}
 				if (obstacleIndex == 4) {
 					sprite = this.spriteMgr.getObstacle("truck", 1);
-					speed = currentMaxSpeed / 4 + Math.random() * currentMaxSpeed * 3;
+					speed = _randomIntFromInterval(currentMaxSpeed * 0.50, currentMaxSpeed * 0.55);
 				}
 				if (obstacleIndex == 5) {
 					isMoving = false;
@@ -604,7 +619,7 @@ class CarController extends Component {
 	update(delta, absolute) {
 		let speed = this.owner.getAttribute(ATTR_SPEED);
 
-		this.gameModel.currentMaxSpeed += delta * 0.0001;
+		this.gameModel.currentMaxSpeed = Math.min(MAXIMUM_SPEED, this.gameModel.currentMaxSpeed + delta * 0.0001);
 
 		// if the maximum speed has increased enough, accelerate to the next velocity level
 		if (this.gameModel.currentMaxSpeed > speed * 1.1 && this.desiredVelocity == speed) {
@@ -687,7 +702,6 @@ class GameManager extends Component {
 
 	onmessage(msg) {
 		if (msg.action == MSG_CAR_COLLIDED) {
-			return;
 			this.gameModel.lives--;
 			if (this.gameModel.lives == 0) {
 
