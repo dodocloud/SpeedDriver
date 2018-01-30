@@ -1,4 +1,8 @@
-
+/**
+ * @file Component-based micro-engine, partially implements ECS pattern (Entity-Component-System)
+ * @author Adam Vesecky <vesecky.adam@gmail.com>
+ */
+ 
 const MSG_OBJECT_ADDED = 1;
 const MSG_OBJECT_REMOVED = 2;
 

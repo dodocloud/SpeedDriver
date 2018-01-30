@@ -1,3 +1,9 @@
+/**
+ * @file Sprites and their offsets as they are placed in the main sprite sheet
+ * @author Adam Vesecky <vesecky.adam@gmail.com>
+ */
+
+
 
 // Chrome doesn't support fetching JSON files from disc by default :-(
 var sprites_data = {
