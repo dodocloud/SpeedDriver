@@ -70,16 +70,12 @@ function initGame() {
 	scene.addGlobalAttribute(ATTR_SPRITE_MGR, spriteMgr);
 	scene.addGlobalAttribute(ATTR_OBSTACLE_MAP, obstacleMap);
 	
-	// create root game object (all global components should be put into this object)
-	let root = new GameObject("root");
-	root.addComponent(new InputManager()); 
-	
-	scene.addGameObject(root);
+	// create game manager (all global components should be put into this object)
+	let gameManager = new GameObject("game_manager");
+	gameManager.addComponent(new InputManager()); 
+	gameManager.addComponent(new RoadRenderer());
+	scene.addGameObject(gameManager);
 
-	// add road
-	let road = new GameObject("road");
-	road.addComponent(new RoadRenderer());
-	scene.addGameObject(road);
 
 	// add player's car
 	let car = new GameObject("car");
@@ -96,7 +92,10 @@ function initGame() {
 	scene.addGameObject(car);
 
 	// score renderer
-	root.addComponent(new ScoreDisplayComponent());
+	let score = new GameObject("score");
+	score.zIndex = 10;
+	score.addComponent(new ScoreDisplayComponent());
+	scene.addGameObject(score);
 	
 	// obstacle manager
 	let obstacleMgr = new GameObject("obstacle_manager");
@@ -104,7 +103,7 @@ function initGame() {
 	scene.addGameObject(obstacleMgr);
 	
 	// speed bar
-	let speedbar = new GameObject("bar");
+	let speedbar = new GameObject("speedbar");
 	let sprite = spriteMgr.getBarCover();
 	speedbar.posX = spriteMgr.getBgrWidth() * 2 + spriteMgr.getRoad().width - sprite.width - 20;
 	speedbar.posY = 20;
@@ -120,14 +119,11 @@ function initGame() {
 	lives.addComponent(new LivesComponent());
 	scene.addGameObject(lives);
 	
-	// manager that orchestrates global events
-	let gameMgr = new GameObject("gameManager");
-	gameMgr.addComponent(new GameComponent());
+	gameManager.addComponent(new GameComponent());
 	// the manager also renders messages such as Game Over and Get Ready
-	gameMgr.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
-	gameMgr.posY = canvas.height/2;
-	scene.addGameObject(gameMgr);
-	
+	gameManager.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
+	gameManager.posY = canvas.height/2;
+
 	return true;
 }
 

@@ -348,9 +348,9 @@ class GameObject {
 	}
 
 	// returns true, if the object intersects with another object
-	intersects(other) {
-		return this._horizontalIntersection(other) >= 0 &&
-		this._verticalIntersection(other) >= 0;
+	intersects(other, tolerance = 0) {
+		return this._horizontalIntersection(other) >= tolerance &&
+		this._verticalIntersection(other) >= tolerance;
 	}
 
 	_horizontalIntersection(other) {
@@ -473,7 +473,7 @@ class InputManager extends Component {
 		if (this.lastTouch != null) {
 			if (typeof(evt.changedTouches) !== "undefined" && evt.changedTouches.length == 1) {
 				posX = evt.changedTouches[0].pageX;
-				posY = evt.changedTouches[1].pageY;
+				posY = evt.changedTouches[0].pageY;
 
 			} else {
 				// mouse

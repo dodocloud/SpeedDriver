@@ -170,7 +170,7 @@ class ScoreDisplayComponent extends Component {
 		let posX = 20;
 		let posY = 100;
 
-		ctx.fillStyle = "rgba(255, 255, 255)";
+		ctx.fillStyle = "rgba(255, 255, 255, 1)";
 		ctx.textAlign = 'left';
 		ctx.fillText(`${score} m`, posX, posY);
 	}

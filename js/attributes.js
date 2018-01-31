@@ -190,7 +190,7 @@ class ObstacleMap {
 	// finds an obstacle that is in collision with given object
 	findCollidedObstacle(gameObject) {
 		for (let[key, val]of this.obstacles) { 
-			if (gameObject.intersects(val)) {
+			if (gameObject.intersects(val, 20)) { // 20px tolerance
 				return val;
 			}
 		}
