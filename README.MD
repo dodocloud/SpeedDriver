@@ -4,7 +4,7 @@ SpeedDriver
 
 Simple driving game with component architecture written in HTML5. 
 
-<a href="https://github.com/dodolib/dodoengine" target="_blank">DoDo Engine</a>
+<a href="https://github.com/dodolibs/dodoengine" target="_blank">DoDo Engine</a>
 
 ## Control
 * TAP to the lane left to the car - the car turns left
