@@ -8,150 +8,171 @@
 // Chrome doesn't support fetching JSON files from disc by default :-(
 var sprites_data = {
 	"road": {
-		"offsetX": 262,
-		"offsetY": 2,
+		"offsetX": 2,
+		"offsetY": 163,
 		"width": 169,
-		"height": 154
+		"height": 134
 	},
 	"bgr_left" : [
 		{
 			"type" : "grass",
-			"offsetX" : 2,
-			"offsetY" : 134,
-			"width" : 80,
-			"height" : 154
-		},
-		{
-			"type" : "grass",
-			"offsetX" : 90,
-			"offsetY" : 134,
-			"width" : 80,
-			"height" : 154
-		},
-		{
-			"type" : "pond",
-			"offsetX" : 2,
-			"offsetY" : 294,
-			"width" : 80,
-			"height" : 154
+			"offsetX" : 397,
+			"offsetY" : 332,
+			"width" : 95,
+			"height" : 161
 		},
 		{
 			"type" : "forest",
-			"offsetX" : 90,
-			"offsetY" : 294,
-			"width" : 80,
-			"height" : 154
+			"offsetX" : 197,
+			"offsetY" : 163,
+			"width" : 95,
+			"height" : 161
+		},
+		{
+			"type" : "forest",
+			"offsetX" : 397,
+			"offsetY" : 163,
+			"width" : 95,
+			"height" : 161
+		},
+		{
+			"type" : "forest",
+			"offsetX" : 197,
+			"offsetY" : 332,
+			"width" : 95,
+			"height" : 161
 		}
 	],
 	"bgr_right" : [
 		{
 			"type" : "grass",
-			"offsetX" : 180,
-			"offsetY" : 162,
-			"width" : 80,
-			"height" : 154
-		},
-		{
-			"type" : "grass",
-			"offsetX" : 268,
-			"offsetY" : 162,
-			"width" : 80,
-			"height" : 154
-		},
-		{
-			"type" : "carpet",
-			"offsetX" : 180,
-			"offsetY" : 322,
-			"width" : 80,
-			"height" : 154
+			"offsetX" : 397,
+			"offsetY" : 332,
+			"width" : 95,
+			"height" : 161
 		},
 		{
 			"type" : "forest",
-			"offsetX" : 268,
-			"offsetY" : 322,
-			"width" : 80,
-			"height" : 154
+			"offsetX" : 197,
+			"offsetY" : 163,
+			"width" : 95,
+			"height" : 161
+		},
+		{
+			"type" : "truck",
+			"offsetX" : 297,
+			"offsetY" : 163,
+			"width" : 95,
+			"height" : 161
+		},
+		{
+			"type" : "house",
+			"offsetX" : 297,
+			"offsetY" : 332,
+			"width" : 95,
+			"height" : 161
 		}
 	],
 	"car": {
-		"offsetX": 352,
-		"offsetY": 162,
-		"width": 41,
-		"height": 66
+		"offsetX": 128,
+		"offsetY": 13,
+		"width": 34,
+		"height": 74
 	},
 	"car_destroyed": {
-		"offsetX": 396,
-		"offsetY": 173,
-		"width": 41,
-		"height": 67
+		"offsetX": 165,
+		"offsetY": 13,
+		"width": 34,
+		"height": 74
 	},
 	"obstacles" : [
 		{
-			"type" : "car",
-			"offsetX": 44,
-			"offsetY": 453,
-			"width": 35,
-			"height": 47
-		},
-		{
-			"type" : "car",
-			"offsetX": 440,
-			"offsetY": 177,
-			"width": 41,
-			"height": 60
+			"type" : "truck",
+			"offsetX": 8,
+			"offsetY": 13,
+			"width": 39,
+			"height": 106
 		},
 		{
 			"type" : "truck",
-			"offsetX": 436,
-			"offsetY": 0,
-			"width": 45,
-			"height": 86
+			"offsetX": 48,
+			"offsetY": 13,
+			"width": 39,
+			"height": 106
 		},
 		{
 			"type" : "car",
-			"offsetX": 352,
-			"offsetY": 229,
-			"width": 32,
-			"height": 46
+			"offsetX": 87,
+			"offsetY": 13,
+			"width": 38,
+			"height": 71
+		},
+		{
+			"type" : "car",
+			"offsetX": 203,
+			"offsetY": 13,
+			"width": 34,
+			"height": 74
+		},
+		{
+			"type" : "car",
+			"offsetX": 240,
+			"offsetY": 13,
+			"width": 34,
+			"height": 74
 		},
 		{
 			"type" : "truck",
-			"offsetX": 436,
-			"offsetY": 88,
-			"width": 45,
-			"height": 86
+			"offsetX": 280,
+			"offsetY": 13,
+			"width": 34,
+			"height": 95
+		},
+		{
+			"type" : "car",
+			"offsetX": 320,
+			"offsetY": 13,
+			"width": 29,
+			"height": 65
+		},
+				{
+			"type" : "truck",
+			"offsetX": 354,
+			"offsetY": 13,
+			"width": 42,
+			"height": 92
 		},
 		{
 			"type" : "static",
-			"offsetX": 176,
-			"offsetY": 132,
-			"width": 53,
-			"height": 21
+			"offsetX": 10,
+			"offsetY": 121,
+			"width": 27,
+			"height": 34
 		},
 		{
 			"type" : "static",
-			"offsetX": 352,
-			"offsetY": 274,
-			"width": 26,
-			"height": 25
+			"offsetX": 47,
+			"offsetY": 119,
+			"width": 27,
+			"height": 34
 		}
 	],
 	"bar_cover" : {
-		"offsetX" : 486,
-		"offsetY" : 2,
-		"width" : 16,
-		"height" : 133
+		"offsetX" : 2,
+		"offsetY" : 301,
+		"width" : 25,
+		"height" : 204
 	},
 	"bar_fill" : {
-		"offsetX" : 486,
-		"offsetY" : 142,
-		"width" : 12,
-		"height" : 129
+		"offsetX" : 34,
+		"offsetY" : 301,
+		"width" : 25,
+		"height" : 209
 	},
 	"life" : {
-		"offsetX" : 2,
-		"offsetY" : 454,
-		"width" : 37,
-		"height" : 47
+		"offsetX" : 81,
+		"offsetY" : 343,
+		"width" : 79,
+		"height" : 40
 	}
 };
