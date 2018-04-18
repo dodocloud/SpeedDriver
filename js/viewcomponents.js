@@ -44,7 +44,7 @@ class RoadRenderer extends Component {
 
 		var posX = this.spriteMgr.getBgrWidth();
 		var spriteHeight = this.spriteMgr.getRoad().height;
-		var canvasHeight = this.scene.context.canvasHeight;
+		var canvasHeight = this.scene.canvas.height;
 		
 		// calculate number of rendering cycles in order to fill the whole canvas
 		var cycles = Math.round(canvasHeight / spriteHeight) + 2; 
@@ -92,8 +92,8 @@ class RoadObjectRenderer extends Component {
 
 			// posY is actually a coordinate on the road (starting at the very bottom)
 			ctx.drawImage(this.spriteMgr.atlas, this.owner.sprite.offsetX, this.owner.sprite.offsetY,
-				this.owner.sprite.width, this.owner.sprite.height, this.owner.posX,
-				cameraPosition - this.owner.posY, this.owner.sprite.width, this.owner.sprite.height);
+				this.owner.sprite.width, this.owner.sprite.height, this.owner.trans.posX,
+				cameraPosition - this.owner.trans.posY, this.owner.sprite.width, this.owner.sprite.height);
 		}
 	}
 }
@@ -125,12 +125,16 @@ class FlickerAnimation extends Component {
 		if ((absolute - this.lastFlicker) > (1000 / this.frequency)) {
 			// blink
 			this.lastFlicker = absolute;
-			this.owner.visible = !this.owner.visible;
+			if(this.owner.hasState(STATE_DRAWABLE)){
+				this.owner.removeState(STATE_DRAWABLE);
+			}else{
+				this.owner.addState(STATE_DRAWABLE);
+			}
 		}
 
 		if ((absolute - this.startTime) > this.duration) {
 			// finish
-			this.owner.visible = true;
+			this.owner.addState(STATE_DRAWABLE);
 			this.sendmsg(MSG_ANIM_ENDED);
 			this.owner.removeComponent(this);
 		}
@@ -193,7 +197,7 @@ class AnimTextDisplayComponent extends Component {
 	draw(ctx) {
 		ctx.fillStyle = `rgba(255, 255, 255,  ${this.opacity})`;
 		ctx.textAlign = 'center';
-		ctx.fillText(this.text, this.owner.posX, this.owner.posY);
+		ctx.fillText(this.text, this.owner.trans.posX, this.owner.trans.posY);
 	}
 
 	update(delta, absolute) {
@@ -237,12 +241,12 @@ class SpeedbarComponent extends Component {
 
 		// draw the filled bar first
 		ctx.drawImage(this.spriteMgr.atlas, barFill.offsetX, barFill.offsetY + shift,
-			barFill.width, barFill.height - shift, this.owner.posX + 2, this.owner.posY + 2 + shift,
+			barFill.width, barFill.height - shift, this.owner.trans.posX + 2, this.owner.trans.posY + 2 + shift,
 			barFill.width, barFill.height - shift);
 
 		// draw the border
 		ctx.drawImage(this.spriteMgr.atlas, barCover.offsetX, barCover.offsetY,
-			barCover.width, barCover.height, this.owner.posX, this.owner.posY,
+			barCover.width, barCover.height, this.owner.trans.posX, this.owner.trans.posY,
 			barCover.width, barCover.height);
 	}
 }

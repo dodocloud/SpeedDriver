@@ -16,7 +16,6 @@ const ATTR_SPEED = 103;			// current speed
 const ATTR_OBSTACLE_MAP = 104;	// ObstacleMap structure
 
 // keys of message actions
-const MSG_TOUCH = 103;	// touch event
 const MSG_ANIM_ENDED = 104;	// an animation has ended
 const MSG_CAR_COLLIDED = 105;	// a collision with player's car occurred
 const MSG_IMMUNE_MODE_STARTED = 106;	// immune mode has just started

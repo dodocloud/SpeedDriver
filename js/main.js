@@ -31,8 +31,7 @@ window.onload = function () {
 	canvasCtx.font = '24px Impact';
 
 	// init component microengine
-	let context = new Context(canvas);
-	scene = new Scene(context);
+	scene = new Scene(canvas);
 
 	var currentTime = (new Date()).getTime();
 	gameTime = (new Date()).getTime() - currentTime;
@@ -69,47 +68,48 @@ function initGame() {
 	scene.addGlobalAttribute(ATTR_GAME_MODEL, model);
 	scene.addGlobalAttribute(ATTR_SPRITE_MGR, spriteMgr);
 	scene.addGlobalAttribute(ATTR_OBSTACLE_MAP, obstacleMap);
+	scene.addGlobalComponent(new DebugComponent(document.getElementById("debugSect")));
 	
 	// create game manager (all global components should be put into this object)
 	let gameManager = new GameObject("game_manager");
-	gameManager.addComponent(new InputManager()); 
+	gameManager.addComponent(new InputManager(INPUT_TOUCH | INPUT_DOWN)); 
 	gameManager.addComponent(new RoadRenderer());
-	scene.addGameObject(gameManager);
+	scene.addGlobalGameObject(gameManager);
 
 
 	// add player's car
 	let car = new GameObject("car");
 	car.sprite = spriteMgr.getCar();
 	
-	car.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfLane(1) - car.sprite.width/2; // the middle lane
-	car.posY = model.cameraPosition -canvas.height + 1.5 * spriteMgr.getCar().height; // slightly above the bottom border of the scene
+	car.trans.posX = spriteMgr.getBgrWidth() + spriteMgr.getCenterOfLane(1) - car.sprite.width/2; // the middle lane
+	car.trans.posY = model.cameraPosition -canvas.height + 1.5 * spriteMgr.getCar().height; // slightly above the bottom border of the scene
 	car.zIndex = 5;
 	
 	car.addComponent(new CarTouchController());	// component which controls the car
 	car.addComponent(new RoadObjectRenderer());	// component which renders the car
 	car.addComponent(new CarCollisionChecker()); // component which controls collisions
 	car.addAttribute(ATTR_LANE, 1); // the middle lane
-	scene.addGameObject(car);
+	scene.addGlobalGameObject(car);
 
 	// score renderer
 	let score = new GameObject("score");
 	score.zIndex = 10;
 	score.addComponent(new ScoreDisplayComponent());
-	scene.addGameObject(score);
+	scene.addGlobalGameObject(score);
 	
 	// obstacle manager
 	let obstacleMgr = new GameObject("obstacle_manager");
 	obstacleMgr.addComponent(new ObstacleManager());
-	scene.addGameObject(obstacleMgr);
+	scene.addGlobalGameObject(obstacleMgr);
 	
 	// speed bar
 	let speedbar = new GameObject("speedbar");
 	let sprite = spriteMgr.getBarCover();
-	speedbar.posX = spriteMgr.getBgrWidth() * 2 + spriteMgr.getRoad().width - sprite.width - 20;
-	speedbar.posY = 20;
+	speedbar.trans.posX = spriteMgr.getBgrWidth() * 2 + spriteMgr.getRoad().width - sprite.width - 20;
+	speedbar.trans.posY = 20;
 	speedbar.zIndex = 10;
 	speedbar.addComponent(new SpeedbarComponent());
-	scene.addGameObject(speedbar);
+	scene.addGlobalGameObject(speedbar);
 	
 	// number of lives (only view)
 	let lives = new GameObject("lives");
@@ -117,12 +117,13 @@ function initGame() {
 	lives.sprite = livesSprite;
 	lives.zIndex = 10;
 	lives.addComponent(new LivesComponent());
-	scene.addGameObject(lives);
-	
+	scene.addGlobalGameObject(lives);
+	scene.submitChanges();
+
 	gameManager.addComponent(new GameComponent());
 	// the manager also renders messages such as Game Over and Get Ready
-	gameManager.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
-	gameManager.posY = canvas.height/2;
+	gameManager.trans.posX = spriteMgr.getBgrWidth() + spriteMgr.getRoad().width/2;
+	gameManager.trans.posY = canvas.height/2;
 
 	return true;
 }

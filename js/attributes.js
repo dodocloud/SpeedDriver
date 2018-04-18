@@ -174,8 +174,8 @@ class ObstacleMap {
 				continue;
 			}
 
-			let obstacleTopPos = val.posY;
-			let obstacleBottomPos = val.posY - val.sprite.height;
+			let obstacleTopPos = val.trans.posY;
+			let obstacleBottomPos = val.trans.posY - val.sprite.height;
 			// 20 pixels tolerance
 			let intersection = -Math.max(obstacleBottomPos - 20, bottomPos) + Math.min(obstacleTopPos + 20, topPos);
 
@@ -190,7 +190,9 @@ class ObstacleMap {
 	// finds an obstacle that is in collision with given object
 	findCollidedObstacle(gameObject) {
 		for (let[key, val]of this.obstacles) { 
-			if (gameObject.intersects(val, 20)) { // 20px tolerance
+
+
+			if (this._intersects(gameObject, val, 5)) { // 20px tolerance
 				return val;
 			}
 		}
@@ -208,7 +210,7 @@ class ObstacleMap {
 				continue;
 			}
 
-			let distance = (val.posY - val.sprite.height) - gameObject.posY;
+			let distance = (val.trans.posY - val.sprite.height) - gameObject.trans.posY;
 			if (distance > 0) {
 				if (nearest == null || distance < nearestDistance) {
 					nearest = val;
@@ -222,5 +224,17 @@ class ObstacleMap {
 	// return true, if the given line is forbidden
 	isLaneForbidden(lane) {
 		return (lane == this.forbiddenLane1 || lane == this.forbiddenLane2);
+	}
+
+	_intersects(obj1, obj2, tolerance = 0) {
+		return this._horizontalIntersection(obj1, obj2) >= -tolerance && this._verticalIntersection(obj1, obj2) >= -tolerance;
+	}
+
+	_horizontalIntersection(obj1, obj2) {
+		return Math.min(obj1.trans.posX + obj1.sprite.width, obj2.trans.posX + obj2.sprite.width) - Math.max(obj1.trans.posX, obj2.trans.posX);
+	}
+
+	_verticalIntersection(obj1, obj2) {
+		return Math.min(obj1.trans.posY + obj1.sprite.height, obj2.trans.posY + obj2.sprite.height) - Math.max(obj1.trans.posY, obj2.trans.posY);
 	}
 }

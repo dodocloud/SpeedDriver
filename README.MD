@@ -10,6 +10,3 @@ Simple driving game with component architecture written in HTML5.
 * TAP to the lane left to the car - the car turns left
 * TAP to the lane right to the car - the car turns right
 
-## Compatibility
-
-Compatible with DoDoEngine 0.1

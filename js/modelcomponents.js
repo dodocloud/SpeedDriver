@@ -155,8 +155,8 @@ class ObstacleManager extends Component {
 	_createNewObstacle(sprite, posX, posY, lane, speed, isMoving, absolute) {
 		let newObj = new GameObject("obstacle");
 		newObj.sprite = sprite;
-		newObj.posX = posX;
-		newObj.posY = posY;
+		newObj.trans.posX = posX;
+		newObj.trans.posY = posY;
 		newObj.zIndex = 1;
 		newObj.addAttribute(ATTR_LANE, lane);
 		newObj.addAttribute(ATTR_SPEED, speed);
@@ -166,7 +166,7 @@ class ObstacleManager extends Component {
 		}
 		
 		newObj.addComponent(new RoadObjectRenderer());
-		this.scene.addGameObject(newObj);
+		this.scene.addGlobalGameObject(newObj);
 		this.obstacleMap.addObstacle(newObj, absolute);
 	}
 
@@ -190,7 +190,7 @@ class MovingObstacleComponent extends Component {
 		let currentSpeed = this.owner.getAttribute(ATTR_SPEED);
 		
 		// increment position according to the current speed
-		this.owner.posY += currentSpeed * delta * 0.01; 
+		this.owner.trans.posY += currentSpeed * delta * 0.01; 
 		
 		// find nearest obstacle on the same lane
 		let nearest = this.obstacleMap.getNearestObstacle(this.owner, true);
@@ -198,7 +198,7 @@ class MovingObstacleComponent extends Component {
 		if (nearest != null) {
 			
 			// check if the obstacle is close enough
-			let distance = (nearest.posY - nearest.sprite.height) - this.owner.posY;
+			let distance = (nearest.trans.posY - nearest.sprite.height) - this.owner.trans.posY;
 
 			// if we are closer than 200 units, we need to decelerate
 			let criticalDistance = this.currentMaxSpeed * 3; 
@@ -281,7 +281,7 @@ class CarController extends Component {
 	steerLeft() {
 		this.steeringState = STEERING_LEFT;
 		this.steeringTime = 0;
-		this.steeringSourcePosX = this.owner.posX;
+		this.steeringSourcePosX = this.owner.trans.posX;
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 		this.owner.addAttribute(ATTR_LANE, currentCarLane - 1); // change the attribute
 	}
@@ -290,7 +290,7 @@ class CarController extends Component {
 	steerRight() {
 		this.steeringState = STEERING_RIGHT;
 		this.steeringTime = 0;
-		this.steeringSourcePosX = this.owner.posX;
+		this.steeringSourcePosX = this.owner.trans.posX;
 		let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 		this.owner.addAttribute(ATTR_LANE, currentCarLane + 1); // change the attribute
 	}
@@ -323,7 +323,7 @@ class CarController extends Component {
 		}
 
 		// increment position according to the current speed
-		this.owner.posY += (speed * delta * 0.01);
+		this.owner.trans.posY += (speed * delta * 0.01);
 	}
 	
 	_handleSteering(delta, absolute){
@@ -346,7 +346,7 @@ class CarController extends Component {
 			// transform to [0,1] interval
 			var progress = Math.min(1, (absolute - this.steeringTime) / STEERING_DURATION);
 			// change car location
-			this.owner.posX = this.steeringSourcePosX + (desiredLocationX - this.steeringSourcePosX) * progress;
+			this.owner.trans.posX = this.steeringSourcePosX + (desiredLocationX - this.steeringSourcePosX) * progress;
 
 			if (progress >= 1) {
 				// steering has finished
@@ -367,17 +367,16 @@ class CarTouchController extends CarController {
 	onmessage(msg) {
 		super.onmessage(msg);
 		if (msg.action == MSG_TOUCH) {
-			
-			let posX = msg.data[0];
-			let posY = msg.data[1];
+			let posX = msg.data.mousePos.posX;
+			let posY = msg.data.mousePos.posY;
 
 			let currentCarLane = this.owner.getAttribute(ATTR_LANE);
 		
-			if (posX < this.owner.posX && currentCarLane > 0) {
+			if (posX < this.owner.trans.posX && currentCarLane > 0) {
 				this.steerLeft();
 			}
 
-			if (posX > (this.owner.posX + this.spriteMgr.getCar().width) && currentCarLane < 2) {
+			if (posX > (this.owner.trans.posX + this.spriteMgr.getCar().width) && currentCarLane < 2) {
 				this.steerRight();
 			}
 		}
