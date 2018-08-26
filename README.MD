@@ -28,13 +28,13 @@ Is based on a wonderful idea: there are no game objects, only a containers for c
 
 ## Installation
 
-Just open **game.html** and that's it. The game also contains a debugging window that displays all components and attributes. To hide it, just remove line 71 in `main.js` where the component is added to the model.
+Just open **game.html** and that's it - no npm, no imports, no libraries. The game also contains a debugging window that displays all components and attributes. To hide it, just remove line 71 in `main.js` where the component is added to the model.
 
 ### Debugging window 
 
 `DebugComponent` is a component that goes over the whole scene and renders all game objects and their components 
 
-![debug](docs/debugComponent.png)
+![debug](docs/debugComponent.jpg)
 
 ## Control settings
 * TAP to the lane left to the car - the car turns left
